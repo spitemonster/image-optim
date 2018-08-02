@@ -1,5 +1,5 @@
 const express = require('express')
-const Vue = require('Vue')
+// const Vue = require('Vue')
 const fs = require('fs')
 const fileUpload = require('express-fileupload')
 const bodyParser = require('body-parser')
@@ -30,7 +30,12 @@ app.get('/', (req, res) => {
 })
 
 app.get('/wait', (req, res) => {
-  res.renderVue('wait.vue')
+  let data = {
+    filename: req.query.name,
+    files: fs.readdirSync('./min/' + req.query.name)
+  }
+
+  res.renderVue('wait.vue', data)
 })
 
 app.get('/download', (req, res) => {
@@ -65,14 +70,18 @@ app.post('/upload', (req, res) => {
   methods
     .resizeImages('./uploads/temp/', fileName, options, './uploads/temp/', ext)
     .then(() => {
-      methods.optimizeImages('./uploads/temp/', './min/' + fileName).then(() => {
-        methods.zipDirectory('./min/' + fileName, res)
+      methods.optimizeImages('./uploads/temp/', './min/' + fileName)
+      .then(() => {
+        methods.printCode(fileName, ext, options)
+        .then(() => {
+          methods.zipDirectory('./min/' + fileName, res)
+        })
       })
     }).catch((err) => {
       return console.log(err)
     })
 
-  res.redirect('/wait')
+  res.redirect('/wait?name=' + fileName + '&ext=' + ext)
 })
 
 app.listen('8888', () => {

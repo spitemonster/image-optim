@@ -1,7 +1,7 @@
 // const sharp = require('sharp')
 const imagemin = require('imagemin')
-const imageminJpegtran = require('imagemin-jpegtran')
 const imageminPngquant = require('imagemin-pngquant')
+const imageminJpegoptim = require('imagemin-jpegoptim')
 const Jimp = require('jimp')
 const path = require('path')
 const fs = require('fs')
@@ -81,7 +81,7 @@ function optimizeImages (directory, output) {
   return new Promise((resolve, reject) => {
     imagemin([directory + '*.{jpg,png}'], output, {
       plugins: [
-        imageminJpegtran(),
+        imageminJpegoptim({max: 95}),
         imageminPngquant({quality: '65-80'})
       ]
     }).then(() => {
@@ -116,7 +116,58 @@ function zipDirectory (directory, res) {
   })
 }
 
+function printCode (filename, extension, options) {
+  return new Promise((resolve, reject) => {
+    let o = options
+    let ext = extension
+    let fileSource
+    let sourceSet = ''
+    let fileContents = `<!-- code generated based on file uploaded\r\nremember to update source URL and add an alt tag --> \r\n`
+
+    if (o.async) {
+      fileSource = filename + '-async.' + ext
+    } else {
+      fileSource = filename + '-original.' + ext
+    }
+
+    fileContents += `<img src="/${fileSource}"`
+
+    if (o.xsmall) {
+      sourceSet += `/${filename}-xsmall.${ext} 320w`
+    }
+
+    if (o.small) {
+      sourceSet += `,\r\n\t\t `
+      sourceSet += `/${filename}-small.${ext} 480w`
+    }
+
+    if (o.medium) {
+      sourceSet += `,\r\n\t\t `
+      sourceSet += `/${filename}-medium.${ext} 960w`
+    }
+
+    if (o.large) {
+      sourceSet += `,\r\n\t\t `
+      sourceSet += `/${filename}-large.${ext} 1280w`
+    }
+
+    if (o.retina) {
+      sourceSet += `,\r\n\t\t `
+      sourceSet += `/${filename}-retina.${ext} 2160w`
+    }
+
+    fileContents += ` \r\n\t\t data-srcset="${sourceSet}" />`
+
+    fs.writeFileSync('./min/' + filename + '/codeExample.html', fileContents, (err) => {
+      if (err) { return console.log(err) }
+    })
+
+    resolve('done')
+  })
+}
+
 module.exports.resizeImages = resizeImages
 module.exports.optimizeImages = optimizeImages
 module.exports.cleanDirectory = cleanDirectory
 module.exports.zipDirectory = zipDirectory
+module.exports.printCode = printCode

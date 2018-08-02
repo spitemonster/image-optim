@@ -16,6 +16,7 @@
     "express-vue": "^5.6.6",
     "hbs": "^4.0.1",
     "imagemin": "^6.0.0",
+    "imagemin-jpegoptim": "^5.2.0",
     "imagemin-jpegtran": "^5.0.2",
     "imagemin-pngquant": "^6.0.0",
     "jimp": "^0.2.28",
@@ -25,6 +26,8 @@
     "path": "^0.12.7",
     "vue": "^2.5.17",
     "vue-cli": "^2.9.6",
+    "vue-server-renderer": "^2.5.17",
+    "vue-template-compiler": "^2.5.17",
     "vuex": "^3.0.1",
     "zip-folder": "^1.0.0"
   },
