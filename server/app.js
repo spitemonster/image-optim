@@ -31,8 +31,7 @@ app.get('/', (req, res) => {
 
 app.get('/wait', (req, res) => {
   let data = {
-    filename: req.query.name,
-    files: fs.readdirSync('./min/' + req.query.name)
+    filename: req.query.name
   }
 
   res.renderVue('wait.vue', data)
@@ -61,7 +60,6 @@ app.post('/upload', (req, res) => {
   let filename = req.files.inputImage.name
   let ext = filename.split('.')[filename.split('.').length - 1]
   let options = req.body
-  console.log(options.asyncBlur)
 
   fs.writeFileSync('./uploads/temp/' + fileName + '-original.' + ext, req.files.inputImage.data, (err) => {
     if (err) throw err

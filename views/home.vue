@@ -33,8 +33,13 @@
         <label for="async-options" v-if="asyncSelected">Async Options</label>
         <label for="async-blur" v-if="asyncSelected">Blur</label>
         <input type="checkbox" name="asyncBlur" v-if="asyncSelected" id="async-blur" />
-        <label for="async-pixel" v-if="asyncSelected">Pixelate</label>
-        <input type="checkbox" name="asyncPixel" v-if="asyncSelected" id="async-pixel" />
+        <fieldset id="asyncShape" v-if="asyncSelected">
+          <label for="asyncShape">Pixelate or Tessellate?</label>
+          <input type="radio" id="pixel" name="asyncShape" value="pixel" v-if="asyncSelected" />
+          <label for="pixel">Pixellate</label>
+          <input type="radio" id="tri" name="asyncShape" value="tri" v-if="asyncSelected" />
+          <label for="tri">Tessellate</label>
+        </fieldset>
       </fieldset>
       <button type="submit" name="button" @click="wait()">Upload</button>
     </form>

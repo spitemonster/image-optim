@@ -6,6 +6,7 @@ const Jimp = require('jimp')
 const path = require('path')
 const fs = require('fs')
 const zipFolder = require('zip-folder')
+const triangulate = require('triangulate-image')
 
 function resizeImages (directory, filename, options, output, extension) {
   let o = options
@@ -46,30 +47,93 @@ function resizeImages (directory, filename, options, output, extension) {
            .write('./uploads/temp/' + filename + '-xsmall.' + ext)
       }
 
-      if (o.async === 'on' && o.asyncBlur !== 'on' && o.asyncPixel !== 'on') {
+      if (o.async === 'on' && o.asyncBlur !== 'on' && !o.asyncShape) {
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
            .write('./uploads/temp/' + filename + '-async.' + ext)
-      } else if (o.async === 'on' && o.asyncBlur === 'on' && o.asyncPixel !== 'on') {
+      } else if (o.async === 'on' && o.asyncBlur === 'on' && !o.asyncShape) {
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
            .blur(15)
            .write('./uploads/temp/' + filename + '-async.' + ext)
-      } else if (o.async === 'on' && o.asyncBlur !== 'on' && o.asyncPixel === 'on') {
+      } else if (o.async === 'on' && o.asyncBlur !== 'on' && o.asyncShape === 'pixel') {
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
            .pixelate(80)
            .write('./uploads/temp/' + filename + '-async.' + ext)
-      } else if (o.async === 'on' && o.asyncBlur === 'on' && o.asyncPixel === 'on') {
+      } else if (o.async === 'on' && o.asyncBlur === 'on' && o.asyncShape === 'pixel') {
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
            .blur(15)
            .pixelate(80)
            .write('./uploads/temp/' + filename + '-async.' + ext)
+      } else if (o.async === 'on' && o.asyncBlur !== 'on' && o.asyncShape === 'tri') {
+        img.clone()
+           .resize(960, Jimp.AUTO)
+           .quality(50)
+           .getBuffer(img.getMIME(), (err, buffer) => {
+             return new Promise((resolve, reject) => {
+               let triangulationParams = {
+                 accuracy: 0.1,
+                 stroke: true,
+                 strokeWidth: 1,
+                 blur: 80,
+                 vertexCount: 100
+               }
+
+               if (err) return console.log(err)
+
+               let fileStream = fs.createWriteStream('./uploads/temp/' + filename + '-async.jpg')
+               let jpgStream = triangulate(triangulationParams)
+                               .fromBufferSync(buffer)
+                               .toJPGStream()
+
+               jpgStream.on('data', function (chunk) { fileStream.write(chunk) })
+               jpgStream.on('end', function () {
+                 fileStream.end()
+               })
+             }).then(() => {
+               resolve('done')
+             }).catch((err) => {
+               throw err
+             })
+           })
+      } else if (o.async === 'on' && o.asyncBlur === 'on' && o.asyncShape === 'tri') {
+        img.clone()
+           .resize(960, Jimp.AUTO)
+           .quality(50)
+           .blur(15)
+           .getBuffer(img.getMIME(), (err, buffer) => {
+             return new Promise((resolve, reject) => {
+               let triangulationParams = {
+                 accuracy: 0.1,
+                 stroke: true,
+                 strokeWidth: 1,
+                 blur: 80,
+                 vertexCount: 100
+               }
+
+               if (err) return console.log(err)
+
+               let fileStream = fs.createWriteStream('./uploads/temp/' + filename + '-async.jpg')
+               let jpgStream = triangulate(triangulationParams)
+                               .fromBufferSync(buffer)
+                               .toJPGStream()
+
+               jpgStream.on('data', function (chunk) { fileStream.write(chunk) })
+               jpgStream.on('end', function () {
+                 fileStream.end()
+               })
+             }).then(() => {
+               resolve('done')
+             }).catch((err) => {
+               throw err
+             })
+           })
       }
     }).then(() => {
       resolve('done')
