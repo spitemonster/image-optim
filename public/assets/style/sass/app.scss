@@ -1,0 +1,16 @@
+@import 'reset';
+@import 'loader';
+
+.image--grid {
+  display: flex;
+  flex-wrap: wrap;
+  
+  div {
+    max-width: 300px;
+
+    img {
+      object-fit: cover;
+      width: 100%;
+    }
+  }
+}

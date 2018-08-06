@@ -1,4 +1,3 @@
-// const sharp = require('sharp')
 const imagemin = require('imagemin')
 const imageminPngquant = require('imagemin-pngquant')
 const imageminJpegoptim = require('imagemin-jpegoptim')
@@ -7,6 +6,8 @@ const path = require('path')
 const fs = require('fs')
 const zipFolder = require('zip-folder')
 const triangulate = require('triangulate-image')
+
+// resize images that are uploaded. needs to be rewritten
 
 function resizeImages (directory, filename, options, output, extension) {
   let o = options
@@ -110,11 +111,11 @@ function resizeImages (directory, filename, options, output, extension) {
            .getBuffer(img.getMIME(), (err, buffer) => {
              return new Promise((resolve, reject) => {
                let triangulationParams = {
-                 accuracy: 0.1,
+                 accuracy: Math.round(Math.random() * 25) / 100,
                  stroke: true,
                  strokeWidth: 1,
                  blur: 80,
-                 vertexCount: 100
+                 vertexCount: Math.ceil(Math.random() * 80) + 50
                }
 
                if (err) return console.log(err)
