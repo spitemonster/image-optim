@@ -4,10 +4,17 @@
 .image--grid {
   display: flex;
   flex-wrap: wrap;
-  
+  width: 650px;
+  margin: 0 auto;
+
   div {
     max-width: 300px;
+    margin: 12px;
 
+    a {
+      display: block;
+    }
+    
     img {
       object-fit: cover;
       width: 100%;

@@ -1,13 +1,12 @@
 const express = require('express')
-// const Vue = require('Vue')
 const fs = require('fs')
 const fileUpload = require('express-fileupload')
 const bodyParser = require('body-parser')
 const expressVue = require('express-vue')
 const methods = require('./methods.js')
-// const cron = require('node-cron')
-const util = require('util')
+const cron = require('node-cron')
 const path = require('path')
+const junk = require('junk')
 
 const vueOptions = {
   rootPath: 'views',
@@ -30,6 +29,11 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
+cron.schedule('* * * 12 * *', () => {
+  let files = fs.readdirSync('./min').filter(junk.not)
+  methods.deleteOld(files)
+})
+
 app.get('/', (req, res) => {
   res.renderVue('home.vue')
 })
@@ -45,9 +49,8 @@ app.get('/download/:filename', (req, res) => {
     zipUrl: '/min/' + dir + '.zip',
     files: []
   }
-  let files = fs.readdirSync('./min/' + dir + '/')
 
-  console.log(files)
+  let files = fs.readdirSync(path.join('./min', dir))
 
   for (let i = 0; i < files.length; i++) {
     if (path.extname(files[i]) !== '.html') {
@@ -60,8 +63,7 @@ app.get('/download/:filename', (req, res) => {
 
 app.get('/download/:filename/zip', (req, res) => {
   let fn = req.params.filename
-
-  res.download('./min/' + fn + '.zip')
+  res.download(path.join('./min/', fn, '.zip'))
 })
 
 app.post('/upload', (req, res) => {
@@ -71,13 +73,13 @@ app.post('/upload', (req, res) => {
   let options = req.body
 
   fs.writeFileSync('./uploads/temp/' + fileName + '-original.' + ext, req.files.inputImage.data, (err) => {
-    if (err) throw err
+    if (err) return methods.handleError(err)
   })
 
   methods
     .resizeImages('./uploads/temp/', fileName, options, './uploads/temp/', ext)
     .then(() => {
-      methods.optimizeImages('./uploads/temp/', './min/' + fileName)
+      methods.optimizeImages('./uploads/temp/', path.join('./min/', fileName))
       .then(() => {
         methods.printCode(fileName, ext, options)
         methods.cleanDirectory('./uploads/temp')
@@ -88,22 +90,8 @@ app.post('/upload', (req, res) => {
         })
       })
     }).catch((err) => {
-      return console.log(err)
+      return methods.handleError(err)
     })
-
-  // setTimeout(() => {
-  //   methods.cleanDirectory('./min/' + fileName)
-  //     .then(() => {
-  //       fs.rmdir('./min/' + fileName, (err) => {
-  //         if (err) return console.log(err)
-  //       })
-  //     })
-  //     .then(() => {
-  //       fs.unlink('./min/' + fileName + '.zip', (err) => {
-  //         if (err) return console.log(err)
-  //       })
-  //     })
-  // }, 30000)
 })
 
 app.listen('8888', () => {
