@@ -1,17 +1,23 @@
 <template lang="html">
-  <div>
-    <h1>Download</h1>
-    <p><a :href="zipUrl">Download Zip</a></p>
-    <div class="image--grid">
-      <div v-for="image in files">
-        <a :href="image"><img :src="image"></a>
+  <div class="body--wrapper">
+    <div class="output--wrapper">
+      <div class="image--grid">
+        <div v-for="image in files">
+            <a :href="image"><img :src="image"></a>
+        </div>
+      </div>
+  <pre class="code--example"><code>
+  {{ code }}
+  </code></pre>
+      <div class="links">
+          <a :href="zipUrl">Download Zip</a>
+          <a href="/">Return</a>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-const fs = require('fs')
 
 export default {
   data() {
@@ -19,14 +25,15 @@ export default {
 
     }
   },
-  methods: {
-
+  methods: {},
+  computed: {
+    formatCode() {
+        return this.code.split('\r\n').join('<br />').toString()
+    }
   },
   mounted() {
-    fs.readdirSync()
+    console.log(this.formatCode);
   }
 }
-</script>
 
-<style lang="css">
-</style>
+</script>

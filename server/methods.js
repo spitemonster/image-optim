@@ -24,6 +24,19 @@ function tessellate (buffer) {
                   .toJPGStream()
 }
 
+function resize (img, size, filename, ext, tag) {
+  return new Promise((resolve, reject) => {
+    img.clone()
+       .resize(size, Jimp.AUTO)
+       .writeAsync('./uploads/temp/' + filename + '-' + tag + ext)
+       .then(() => {
+         resolve('done')
+       }).catch((err) => {
+         return handleError(err)
+       })
+  })
+}
+
 // resize images that are uploaded. needs to be rewritten
 
 function resizeImages (directory, filename, options, output, extension) {
@@ -39,37 +52,27 @@ function resizeImages (directory, filename, options, output, extension) {
 
       // retina/2560
       if (o.retina && width >= 2560) {
-        img.clone()
-           .resize(2560, Jimp.AUTO)
-           .write('./uploads/temp/' + filename + '-retina.' + ext)
+        resize(img, 2560, filename, ext, 'retina')
       }
 
       // large/1280
       if (o.large && width >= 1280) {
-        img.clone()
-           .resize(1280, Jimp.AUTO)
-           .write('./uploads/temp/' + filename + '-large.' + ext)
+        resize(img, 1280, filename, ext, 'large')
       }
 
       // medium/960
       if (o.medium && width >= 960) {
-        img.clone()
-           .resize(960, Jimp.AUTO)
-           .write('./uploads/temp/' + filename + '-medium.' + ext)
+        resize(img, 960, filename, ext, 'medium')
       }
 
       // small/480
       if (o.small && width >= 480) {
-        img.clone()
-           .resize(480, Jimp.AUTO)
-           .write('./uploads/temp/' + filename + '-small.' + ext)
+        resize(img, 480, filename, ext, 'small')
       }
 
       // xtra small/320
       if (o.xsmall && width >= 320) {
-        img.clone()
-           .resize(320, Jimp.AUTO)
-           .write('./uploads/temp/' + filename + '-xsmall.' + ext)
+        resize(img, 320, filename, ext, 'xsmall')
       }
 
       // here's the async crap. all of these are resized to 960 as a nice in between size. not so large that the page weight feels it, but large enough that they'll look good on any screen
@@ -78,21 +81,30 @@ function resizeImages (directory, filename, options, output, extension) {
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
-           .write('./uploads/temp/' + filename + '-async.' + ext)
+           .writeAsync('./uploads/temp/' + filename + '-async.' + ext)
+           .catch((err) => {
+             if (err) return handleError(err)
+           })
       } else if (o.async === 'on' && o.asyncBlur === 'on' && !o.asyncShape) {
         // low quality and blurred
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
            .blur(15)
-           .write('./uploads/temp/' + filename + '-async.' + ext)
+           .writeAsync('./uploads/temp/' + filename + '-async.' + ext)
+           .catch((err) => {
+             if (err) return handleError(err)
+           })
       } else if (o.async === 'on' && o.asyncBlur !== 'on' && o.asyncShape === 'pixel') {
         // low quality and pixellated
         img.clone()
            .resize(960, Jimp.AUTO)
            .quality(50)
            .pixelate(80)
-           .write('./uploads/temp/' + filename + '-async.' + ext)
+           .writeAsync('./uploads/temp/' + filename + '-async.' + ext)
+           .catch((err) => {
+             if (err) return handleError(err)
+           })
       } else if (o.async === 'on' && o.asyncBlur === 'on' && o.asyncShape === 'pixel') {
         // low quality, blurred and pixellated
         img.clone()
@@ -100,7 +112,10 @@ function resizeImages (directory, filename, options, output, extension) {
            .quality(50)
            .blur(15)
            .pixelate(80)
-           .write('./uploads/temp/' + filename + '-async.' + ext)
+           .writeAsync('./uploads/temp/' + filename + '-async.' + ext)
+           .catch((err) => {
+             if (err) return handleError(err)
+           })
       } else if (o.async === 'on' && o.asyncBlur !== 'on' && o.asyncShape === 'tri') {
         // low quality and tessellated
         img.clone()
@@ -150,6 +165,8 @@ function resizeImages (directory, filename, options, output, extension) {
       }
     }).then(() => {
       resolve('done')
+    }).catch((err) => {
+      return handleError(err)
     })
   })
 }

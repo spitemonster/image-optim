@@ -47,10 +47,12 @@ app.get('/download/:filename', (req, res) => {
   let data = {
     filename: req.params.filename,
     zipUrl: '/min/' + dir + '.zip',
-    files: []
+    files: [],
+    code: ''
   }
 
   let files = fs.readdirSync(path.join('./min', dir))
+  data.code = fs.readFileSync('./min/' + dir + '/' + 'codeExample.html', {encoding: 'utf8'})
 
   for (let i = 0; i < files.length; i++) {
     if (path.extname(files[i]) !== '.html') {

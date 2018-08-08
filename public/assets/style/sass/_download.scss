@@ -1,0 +1,59 @@
+.output--wrapper {
+  max-width: 650px;
+
+  @media (min-width: 960px) {
+    margin: 100px 0 0 100px;
+  }
+  @media (max-width: 959px) {
+    margin: 25px 0 0 25px;
+  }
+}
+
+.image--grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: space-between;
+
+  div {
+    max-width: 195px;
+    margin-bottom: 2rem;
+
+    a {
+      display: block;
+    }
+
+    img {
+      object-fit: cover;
+      width: 100%;
+    }
+  }
+}
+
+code {
+  display: block;
+  background: none;
+  color: $lightgrey;
+  width: 100%;
+  padding: 2rem 3rem;
+  overflow-x: auto;
+}
+
+.links {
+  width: 650px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: 0 auto;
+
+  a {
+    color: $lightgrey;
+    margin: 12px;
+    text-decoration: none;
+    transition: all 120ms linear;
+    &:hover {
+      color: $medgrey;
+    }
+  }
+}
