@@ -1,3 +1,4 @@
 *.log
 /min
+/uploads
 /node_modules

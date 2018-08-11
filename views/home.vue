@@ -17,38 +17,50 @@
           </div>
         </div>
 
-        <fieldset class="optimization--options">
+        <div class="input--error" v-if="inputError">
+          <p>Optimization and resizing options are available only for JPEG and PNG files</p>
+        </div>
+
+        <div class="advanced">
+          <h1>Advanced</h1>
+          <h1 class="plus" @click="advanced = !advanced">
+            <span v-if="!advanced">+</span>
+            <span v-if="advanced">-</span>
+          </h1>
+        </div>
+        <fieldset v-bind:class="{open: advanced, optimizationOptions: true}">
 
           <label class="section--label">Optimization Options</label>
           <p>The original image will be optimized and included with all selections</p>
 
           <div class="size--options">
             <div class="option">
-              <input type="checkbox" name="xsmall" id="xtra-small" class="sizeToggle" />
+              <input type="hidden" name="xsmall" value="0">
+              <input type="checkbox" name="sizes" id="xtra-small" class="sizeToggle" value="xsmall"/>
               <label for="xtra-small" class="size--option"></label>
               <p>320px</p>
             </div>
 
             <div class="option">
-              <input type="checkbox" name="small" id="small" class="sizeToggle" />
+              <input type="checkbox" name="sizes" id="small" class="sizeToggle" value="small"/>
               <label for="small" class="size--option"></label>
               <p>480px</p>
             </div>
 
             <div class="option">
-              <input type="checkbox" name="medium" id="med" class="sizeToggle" />
+              <input type="checkbox" name="sizes" id="med" class="sizeToggle" value="medium"/>
               <label for="med" class="size--option"></label>
               <p>960px</p>
             </div>
 
             <div class="option">
-              <input type="checkbox" name="large" id="large" class="sizeToggle" />
+              <input type="checkbox" name="sizes" id="large" class="sizeToggle" value="large"/>
               <label for="large" class="size--option"></label>
               <p>1280px</p>
             </div>
 
             <div class="option">
-              <input type="checkbox" name="retina" id="retina" class="sizeToggle" />
+              <input type="checkbox" name="sizes" id="retina" class="sizeToggle" value="retina"/>
               <label for="retina" class="size--option"></label>
               <p>2560px</p>
             </div>
@@ -65,12 +77,18 @@
           <div class="async--options">
             <div class="option">
               <input type="checkbox" name="async" id="async" v-model="asyncSelected"/>
-              <label for="async"></label>
+              <label for="async" id="async--label"></label>
               <p>Async</p>
             </div>
 
             <div class="option async--option">
-              <input type="checkbox" name="asyncBlur" id="async-blur" />
+              <input type="radio" name="asyncShape" value="none" id="async-none" />
+              <label for="async-none"></label>
+              <p>None</p>
+            </div>
+
+            <div class="option async--option">
+              <input type="radio" name="asyncShape" value="blur" id="async-blur" />
               <label for="async-blur"></label>
               <p>Blur</p>
             </div>
@@ -88,7 +106,7 @@
             </div>
           </div>
         </fieldset>
-        <button type="submit" name="button" @click="wait()">Upload</button>
+        <button type="submit" name="button" @click="wait()" id="submit" disabled>Upload</button>
       </form>
     </div>
 
@@ -136,29 +154,38 @@ export default {
   data() {
     return {
       content: 'Turtles are awful',
-      asyncSelected: false
+      asyncSelected: false,
+      advanced: false,
+      inputError: false
     }
   },
   mounted() {
     let toggleAll = document.getElementById('toggleAll');
     let toggleAllLabel = document.getElementById('toggleAllLabel');
     let sizeOptions = document.getElementsByClassName('size--option');
-    let asyncToggle = document.getElementById('async')
-    let asyncToggles = document.getElementsByClassName('async--option')
+    let asyncToggle = document.getElementById('async');
+    let asyncToggles = document.getElementsByClassName('async--option');
     let sizeToggles = document.getElementsByClassName('sizeToggle');
-    let fileInput = document.getElementById('image')
+    let fileInput = document.getElementById('image');
+    let asyncLabel = document.getElementById('async--label');
+    let image = document.getElementById('image');
+    let plus = document.getElementsByClassName('plus')[0];
+    let advanced = document.getElementsByClassName('advanced')[0];
+    let submit = document.getElementById('submit');
 
     toggleAll.addEventListener('change', () => {
       if (sizeToggles[0].checked) {
         for (let i = 0; i < sizeToggles.length; i++) {
           setTimeout(() => {
             sizeToggles[i].checked = !sizeToggles[i].checked;
+            console.log(sizeToggles[i].checked)
           }, 100 * i)
         }
       } else {
         for (let i = sizeToggles.length - 1, j = 0; i >= 0; i--, j++) {
           setTimeout(() => {
             sizeToggles[i].checked = !sizeToggles[i].checked;
+            console.log(sizeToggles[i].checked)
           }, 100 * j)
         }
       }
@@ -203,6 +230,34 @@ export default {
         }
       }
     })
+
+    asyncLabel.addEventListener('mouseenter', () => {
+      for (let i = 0; i < asyncToggles.length; i ++) {
+        setTimeout(() => {
+          asyncToggles[i].classList.add('half')
+        }, 100 * i)
+      }
+    })
+
+    asyncLabel.addEventListener('mouseleave', () => {
+      for (let i = asyncToggles.length - 1, j = 0; i >= 0; i--, j++) {
+        setTimeout(() => {
+          asyncToggles[i].classList.remove('half')
+        }, 100 * j)
+      }
+    })
+
+    image.addEventListener('change', () => {
+      let ext = image.value.split('.')[image.value.split('.').length - 1];
+
+      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png') {
+        this.inputError = true;
+        plus.style.opacity = '0'
+        advanced.style.opacity = '.25'
+      }
+
+      submit.removeAttribute('disabled');
+    })
   },
   methods: {
     changeContent() {
@@ -225,6 +280,10 @@ export default {
 .async--options .option:not(:first-of-type) {
   opacity: 0;
   /* transition: opacity 50ms linear; */
+}
+
+.half {
+  opacity: .5 !important;
 }
 
 .show {
