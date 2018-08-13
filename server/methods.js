@@ -2,7 +2,7 @@ const imagemin = require('imagemin')
 const imageminPngquant = require('imagemin-pngquant')
 const imageminGifsicle = require('imagemin-gifsicle')
 const imageminSvgo = require('imagemin-svgo')
-// const imageminJpegoptim = require('imagemin-jpegoptim')
+const path = require('path')
 const imageminMozjpeg = require('imagemin-mozjpeg')
 const Jimp = require('jimp')
 const fs = require('fs')
@@ -10,9 +10,9 @@ const zipFolder = require('zip-folder')
 const triangulate = require('triangulate-image')
 const rimraf = require('rimraf')
 
-// parameters used for tessellation. using randomization on accuracy and vertices to make no two tessellated images look the same
-
+// tessellation function
 function tessellate (buffer) {
+  // params. randomly generates accuracy and vertex count to ensure no two tessellations are the same
   let triangulationParams = {
     accuracy: Math.round(Math.random() * 25) / 100,
     stroke: true,
@@ -21,18 +21,20 @@ function tessellate (buffer) {
     vertexCount: Math.ceil(Math.random() * 80) + 50
   }
 
+  // return this function to make it a bit easier to deal with later
   return triangulate(triangulationParams)
                   .fromBufferSync(buffer)
                   .toJPGStream()
 }
 
+// resize function. not much to see hwere
 function resize (img, size, output) {
-  console.log(`we're in the resize function`)
   img.clone()
      .resize(size, Jimp.AUTO)
      .write(output)
 }
 
+// async function. as it stands, if statements galore. would like to NOT but not sure how I can
 function generateAsync (directory, filename, option, ext) {
   let fn = `${filename}-original${ext}`
   let output = `${directory}/${filename}-async${ext}`
@@ -59,7 +61,15 @@ function generateAsync (directory, filename, option, ext) {
            .blur(15)
            .writeAsync(output)
            .catch((err) => {
-             if (err) return handleError(err)
+             if (err) {
+               let errorData = {
+                 statusCode: 500,
+                 message: 'There was an error creating an asychronous version of your image. Please try again.',
+                 type: 'Failure'
+               }
+               handleError(err)
+               reject(errorData)
+             }
            })
         resolve('done')
       } else if (option === 'pixel') {
@@ -69,7 +79,15 @@ function generateAsync (directory, filename, option, ext) {
            .pixelate(80)
            .writeAsync(output)
            .catch((err) => {
-             if (err) return handleError(err)
+             if (err) {
+               let errorData = {
+                 statusCode: 500,
+                 message: 'There was an error creating an asychronous version of your image. Please try again.',
+                 type: 'Failure'
+               }
+               handleError(err)
+               reject(errorData)
+             }
            })
         resolve('done')
       } else if (option === 'tri') {
@@ -88,7 +106,15 @@ function generateAsync (directory, filename, option, ext) {
              }).then(() => {
                resolve('done')
              }).catch((err) => {
-               return handleError(err)
+               if (err) {
+                 let errorData = {
+                   statusCode: 500,
+                   message: 'There was an error creating an asychronous version of your image. Please try again.',
+                   type: 'Failure'
+                 }
+                 handleError(err)
+                 reject(errorData)
+               }
              })
            })
         resolve('done')
@@ -97,9 +123,8 @@ function generateAsync (directory, filename, option, ext) {
   })
 }
 
-// resize images that are uploaded. needs to be rewritten
-
-function resizeImages (directory, filename, sizes, ext, id) {
+// resize images that are uploaded
+function resizeImages (id, filename, sizes, ext) {
   let sizeOptions = {
     'xsmall': 320,
     'small': 480,
@@ -108,44 +133,88 @@ function resizeImages (directory, filename, sizes, ext, id) {
     'retina': 2560
   }
 
-  console.log('resize starting up')
-  return Jimp.read(`${directory}/${filename}-original${ext}`)
-        .then((img) => {
-          console.log('reading width')
-          let osize = img.bitmap.width
-          console.log('got the width yo')
-          console.log(sizes)
-          if (sizes) {
-            sizes.forEach((size) => {
-              console.log('resizing for', size)
-              let output = `${directory}/${filename}-${size}${ext}`
-              if (osize > sizeOptions[size]) {
-                resize(img, sizeOptions[size], output)
-              }
-            })
-          }
-        })
-        .catch((err) => {
-          console.log('WHAT THE INCREDIBLE FUCK')
-        })
+  let directory = `./uploads/temp/${id}`
+
+  return new Promise((resolve, reject) => {
+    Jimp.read(`${directory}/${filename}-original${ext}`)
+               .then((img) => {
+                 let osize = img.bitmap.width
+                 if (sizes) {
+                   sizes.forEach((size) => {
+                     let output = `${directory}/${filename}-${size}${ext}`
+                     if (osize > sizeOptions[size]) {
+                       resize(img, sizeOptions[size], output)
+                     }
+                   })
+                   resolve(id)
+                 }
+               }).catch((err) => {
+                 handleError(err)
+                 let errorData = {
+                   message: `We're having trouble reading the file you uploaded. Please confirm the file is not corrupted and try again.`,
+                   statusCode: 415,
+                   type: 'Failure'
+                 }
+                 reject(errorData)
+               })
+  })
 }
 
 // optimizing images in the temp directory
-function optimizeImages (directory, output) {
-  console.log('trying optimize')
+function optimizeImages (id) {
   return new Promise((resolve, reject) => {
-    imagemin([directory + '*.{jpg,png,jpeg,svg,gif}'], output, {
+    imagemin([`./uploads/temp/${id}/` + '*.{jpg,png,jpeg,svg,gif}'], `./min/${id}/`, {
       plugins: [
         imageminMozjpeg({quality: 80}),
         imageminPngquant({quality: '65-80'}),
         imageminGifsicle({interlaced: true, optimizationLevel: 3}),
         imageminSvgo()
       ]
-    }).then(() => {
+    }).then(function () {
       resolve('done')
     }).catch((err) => {
-      return handleError(err)
+      handleError(err)
+      let errorData = {
+        message: 'There was an issue optimizing your images. Please re-upload your file and try again.',
+        statusCode: 500,
+        type: 'Failure'
+      }
+      reject(errorData)
     })
+  })
+}
+
+function collectFiles (dir) {
+  return new Promise((resolve, reject) => {
+    let data = {
+      filename: '',
+      zipUrl: `/download/${dir}/zip`,
+      files: {
+      },
+      code: '',
+      original: ''
+    }
+
+    // probably an inefficient way to do this, but we read the target directory and return an array of all of the files in that directory
+    let files = fs.readdirSync(path.join('./min', dir))
+    if (fs.existsSync(`./min/${dir}/codeExample.html`)) {
+      data.code = fs.readFileSync(`./min/${dir}/codeExample.html`, {encoding: 'utf8'})
+    }
+
+    for (let i = 0; i < files.length; i++) {
+      if (path.extname(files[i]) !== '.html') {
+        let filename = files[i].split('-')
+        let size = filename.pop().split('.')[0]
+        data.filename = filename.join('-')
+        data.files[size] = `/min/${dir}/${files[i]}`
+
+        if (size === 'original') {
+          data.original = `/min/${dir}/${files[i]}`
+        }
+      }
+    }
+
+    resolve(data)
   })
 }
 
@@ -154,9 +223,8 @@ function cleanDirectory (directory) {
   return new Promise((resolve, reject) => {
     rimraf(directory, (err) => {
       if (err) { return handleError(err) }
-
-      resolve('done')
     })
+    return resolve('done')
   })
 }
 
@@ -166,10 +234,12 @@ function zipDirectory (directory) {
     zipFolder(directory, `${directory}.zip`, (err) => {
       if (err) { return handleError(err) } else { resolve('done') }
     })
+    return resolve('done')
   })
 }
 
-// pretty proud of this one. gets filename, prints out an html snippet with the appropriate markup to use with the async image loading script I wrote concurrently with this project
+// pretty proud of this one. gets filename, prints out an html snippet with the appropriate markup to use with the async image loading script I wrote concurrently with this project. intentionally left the reject function out of this since it's not necessary. if this fails, user will still get their images.
+
 function printCode (filename, extension, sizes, id) {
   return new Promise((resolve, reject) => {
     let ext = extension
@@ -210,19 +280,24 @@ function printCode (filename, extension, sizes, id) {
       sourceSet += `/${filename}-retina${ext} 2160w`
     }
 
-    fileContents += ` \r\n\t\t data-srcset="${sourceSet}" />`
+    if (Object.keys(o).length > 1) {
+      fileContents += ` \r\n\t\t data-srcset="${sourceSet}"`
+    }
 
-    fs.writeFileSync(`./min/${id}/codeExample.html`, fileContents, (err) => {
+    fileContents += ` />`
+    fs.writeFileSync(`${__dirname}/../min/${id}/codeExample.html`, fileContents, (err) => {
       if (err) { return handleError(err) }
     })
 
     resolve('done')
+  }).catch((err) => {
+    handleError(err)
   })
 }
 
 // writes any errors to the err.log file
 function handleError (err) {
-  let date = Date.now().toString()
+  let date = Date(Date.now()).toString()
   let error = ''
   console.log('Writing error to file', err, date)
   error += '<------------------------------>\r\n'
@@ -230,16 +305,14 @@ function handleError (err) {
   error += err + '\r\n'
 
   fs.appendFile('./server/logs/err.log', error, (err) => {
-    if (err) { return handleError(err) }
-    return console.log('Error writing to error log')
+    if (err) { handleError(err); return console.log('Error writing to error log') }
   })
 }
 
 // deletes any files and directories older than 3 days that are inside the min directory
 function deleteOld (files) {
-  console.log('cron running')
   if (files.length < 1) {
-    return console.log('directory empty')
+    return
   }
 
   for (let i = 0; i < files.length; i++) {
@@ -252,7 +325,6 @@ function deleteOld (files) {
       })
     }
   }
-  console.log('cron finished')
 }
 
 module.exports.resizeImages = resizeImages
@@ -263,3 +335,4 @@ module.exports.printCode = printCode
 module.exports.handleError = handleError
 module.exports.deleteOld = deleteOld
 module.exports.generateAsync = generateAsync
+module.exports.collectFiles = collectFiles

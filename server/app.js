@@ -8,6 +8,7 @@ const cron = require('node-cron')
 const path = require('path')
 const junk = require('junk')
 const randomstring = require('randomstring')
+const validator = require('validator')
 const vueOptions = {
   rootPath: 'views',
   head: {
@@ -25,9 +26,11 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
-cron.schedule('* * * 12 * *', () => {
+cron.schedule('* * * * 12 *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
+  console.log('cron running')
   methods.deleteOld(files)
+  console.log('cron finished')
 })
 
 app.get('/', (req, res) => {
@@ -38,44 +41,30 @@ app.get('/wait', (req, res) => {
   res.renderVue('wait.vue')
 })
 
-app.get('/download/:filename', (req, res) => {
+app.get('/download/:filename', async (req, res) => {
   let dir = req.params.filename
-  let data = {
-    filename: '',
-    zipUrl: `/download/${dir}/zip`,
-    files: {
-    },
-    code: '',
-    original: ''
-  }
 
-  let files = fs.readdirSync(path.join('./min', dir))
-  if (fs.existsSync(`./min/${dir}/codeExample.html`)) {
-    data.code = fs.readFileSync(`./min/${dir}/codeExample.html`, {encoding: 'utf8'})
-  }
-
-  for (let i = 0; i < files.length; i++) {
-    if (path.extname(files[i]) !== '.html') {
-      let filename = files[i].split('-')
-      let size = filename.pop().split('.')[0]
-      data.filename = filename.join('-')
-      data.files[size] = `/min/${dir}/${files[i]}`
-
-      if (size === 'original') {
-        data.original = `/min/${dir}/${files[i]}`
+  methods.collectFiles(dir)
+    .then(function (data) { return res.renderVue('download.vue', data) })
+    .catch((err) => {
+      let data = {
+        errMessage: err
       }
-    }
-  }
-  res.renderVue('download.vue', data)
+      res.renderVue('404.vue', data)
+    })
 })
 
 app.get('/download/:filename/zip', (req, res) => {
   let fn = req.params.filename
-  res.download(`./min/${fn}.zip`)
+  methods.zipDirectory(`./min/${fn}`).then(() => {
+    res.download(`./min/${fn}.zip`)
+  })
 })
 
 app.post('/upload', (req, res) => {
-  let fileName = req.body.outPutName ? req.body.outPutName : req.files.inputImage.name.split('.')[0]
+  let fileName = req.body.outPutName
+                 ? validator.blacklist(req.body.outPutName, './')
+                 : req.files.inputImage.name.split('.')[0]
   let ext = path.extname(req.files.inputImage.name)
   let sizes = []
   let options = {}
@@ -95,9 +84,8 @@ app.post('/upload', (req, res) => {
     }
   }
 
-  console.log(sizes)
-
   fs.mkdirSync(tempPath)
+  fs.mkdirSync(`./min/${id}`)
 
   fs.writeFileSync(`${tempPath}/${fileName}-original${ext}`, req.files.inputImage.data, (err) => {
     if (err) return methods.handleError(err)
@@ -105,55 +93,44 @@ app.post('/upload', (req, res) => {
 
   if (req.body.async === 'on' && ext !== '.svg') {
     options['async'] = true
-    methods.resizeImages(tempPath, fileName, sizes, ext)
-           .then(() => {
-             methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext)
-               .then(() => {
-                 methods.optimizeImages(`${tempPath}/`, path.join('./min/', id))
-                 .then(() => {
-                   methods.printCode(fileName, ext, options, id)
-                   methods.cleanDirectory(tempPath)
-                   .then(() => {
-                     methods.zipDirectory(`./min/${id}`)
-                   }).then(() => {
-                     res.redirect(`/download/${id}`)
-                   })
-                 })
-               })
-           }).catch(() => {
-             res.status(400)
-             res.redirect('/404')
-           })
+    methods.resizeImages(id, fileName, sizes, ext)
+      .then(function () { return methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext) })
+      .then(function () { return methods.optimizeImages(id) })
+      .then(function () { return methods.printCode(fileName, ext, options, id) })
+      .then(function () { return methods.cleanDirectory(tempPath) })
+      .then(function () { return methods.zipDirectory(`./min/${id}`) })
+      .then(function () { return res.redirect(`/download/${id}`) })
+      .catch((err) => {
+        let data = err
+        res.renderVue('404.vue', data)
+      })
   } else if (req.body.async !== 'on' && ext !== '.svg') {
-    methods.resizeImages(tempPath, fileName, sizes, ext)
-      .then(methods.optimizeImages.bind(`${tempPath}/`, path.join('./min/', id)))
-      .then(() => {
-        console.log('redirecting')
-        // methods.printCode(fileName, ext, options, id)
-        // methods.cleanDirectory(tempPath)
-        res.redirect(`/download/${id}`)
-        console.log('redirected')
-      }).catch(() => {
-        res.status(400)
-        res.redirect('/404')
-        console.log('maybe somethings working')
+    methods.resizeImages(id, fileName, sizes, ext)
+      .then(function () { return methods.optimizeImages(id) })
+      .then(function () { return methods.printCode(fileName, ext, options, id) })
+      .then(function () { return methods.cleanDirectory(tempPath) })
+      .then(function () { return methods.zipDirectory(`./min/${id}`) })
+      .then(function () { return res.redirect(`/download/${id}`) })
+      .catch((err) => {
+        let data = err
+        if (data.type === 'Proceed') {
+          methods.handleError(err)
+        } else {
+          res.status(400).renderVue('404.vue', data)
+        }
       })
   } else if (ext === '.svg') {
-    console.log('svg')
-    console.log(ext)
-    methods.optimizeImages(`${tempPath}/`, path.join('./min/', id))
-    .then(() => {
-      // methods.printCode(fileName, ext, options, id)
-      methods.cleanDirectory(tempPath)
-      .then(() => {
-        methods.zipDirectory(`./min/${id}`)
-      }).then(() => {
-        res.redirect(`/download/${id}`)
+    methods.optimizeImages(id)
+      .then(function () { return methods.printCode(fileName, ext, options, id) })
+      .then(function () { return methods.cleanDirectory(tempPath) })
+      .then(function () { return methods.zipDirectory(`./min/${id}`) })
+      .then(res.redirect(`/download/${id}`))
+      .catch((err) => {
+        let data = {
+          errMessage: err
+        }
+        res.renderVue('404.vue', data)
       })
-    }).catch(() => {
-      res.status(400)
-      res.redirect('/404')
-    })
   }
 })
 
