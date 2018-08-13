@@ -12,16 +12,21 @@
           <h1>Select Image</h1>
           <input type="file" name="inputImage" id="image" class="inputfile" />
           <div class="file--finder">
-            <label for="image">Browse...</label>
+            <label for="image" class="button">Browse...</label>
             <p id="fileName">No file selected.</p>
           </div>
         </div>
 
-        <div class="input--error" v-if="inputError">
-          <p>Optimization and resizing options are available only for JPEG and PNG files</p>
+        <div class="input--error" v-if="fileError">
+          <p>Please select a valid JP(E)G, PNG, SVG or GIF.</p>
         </div>
 
-        <div class="advanced">
+        <div class="input--error" v-if="inputError">
+          <p>Optimization and resizing options are available only for JPEG and PNG files</p>
+          <p v-if="svgError">Be aware that SVG optimization can take a long time. Be patient, please.</p>
+        </div>
+
+        <div class="advanced" v-if="fileSelected">
           <h1>Advanced</h1>
           <h1 class="plus" @click="advanced = !advanced">
             <span v-if="!advanced">+</span>
@@ -82,31 +87,33 @@
             </div>
 
             <div class="option async--option">
-              <input type="radio" name="asyncShape" value="none" id="async-none" />
+              <input type="radio" name="asyncShape" value="none" id="async-none" class="asyncOption"/>
               <label for="async-none"></label>
               <p>None</p>
             </div>
 
             <div class="option async--option">
-              <input type="radio" name="asyncShape" value="blur" id="async-blur" />
+              <input type="radio" name="asyncShape" value="blur" id="async-blur" class="asyncOption"/>
               <label for="async-blur"></label>
               <p>Blur</p>
             </div>
 
             <div class="option async--option">
-              <input type="radio" id="pixel" name="asyncShape" value="pixel" />
+              <input type="radio" id="pixel" name="asyncShape" value="pixel" class="asyncOption"/>
               <label for="pixel"></label>
               <p>Pixellate</p>
             </div>
 
             <div class="option async--option">
-              <input type="radio" id="tri" name="asyncShape" value="tri" />
+              <input type="radio" id="tri" name="asyncShape" value="tri" class="asyncOption"/>
               <label for="tri"></label>
               <p>Tessellate</p>
             </div>
           </div>
         </fieldset>
-        <button type="submit" name="button" @click="wait()" id="submit" disabled>Upload</button>
+        <fieldset class="submit">
+          <button type="submit" name="button" @click="wait()" id="submit" disabled>Upload</button>
+        </fieldset>
       </form>
     </div>
 
@@ -156,7 +163,10 @@ export default {
       content: 'Turtles are awful',
       asyncSelected: false,
       advanced: false,
-      inputError: false
+      inputError: false,
+      svgError: false,
+      fileSelected: false,
+      fileError: false
     }
   },
   mounted() {
@@ -165,6 +175,7 @@ export default {
     let sizeOptions = document.getElementsByClassName('size--option');
     let asyncToggle = document.getElementById('async');
     let asyncToggles = document.getElementsByClassName('async--option');
+    let asyncOptions = document.getElementsByClassName('asyncOption');
     let sizeToggles = document.getElementsByClassName('sizeToggle');
     let fileInput = document.getElementById('image');
     let asyncLabel = document.getElementById('async--label');
@@ -172,20 +183,19 @@ export default {
     let plus = document.getElementsByClassName('plus')[0];
     let advanced = document.getElementsByClassName('advanced')[0];
     let submit = document.getElementById('submit');
+    let outputName = document.getElementById('output-name')
 
     toggleAll.addEventListener('change', () => {
       if (sizeToggles[0].checked) {
         for (let i = 0; i < sizeToggles.length; i++) {
           setTimeout(() => {
             sizeToggles[i].checked = !sizeToggles[i].checked;
-            console.log(sizeToggles[i].checked)
           }, 100 * i)
         }
       } else {
         for (let i = sizeToggles.length - 1, j = 0; i >= 0; i--, j++) {
           setTimeout(() => {
             sizeToggles[i].checked = !sizeToggles[i].checked;
-            console.log(sizeToggles[i].checked)
           }, 100 * j)
         }
       }
@@ -194,7 +204,7 @@ export default {
     toggleAllLabel.addEventListener('mouseenter', () => {
       for (let i = sizeOptions.length - 1, j = 0; i >= 0; i--, j++) {
         setTimeout(() => {
-          sizeOptions[i].style.borderColor = '#6C00FF';
+          sizeOptions[i].classList.add('hover');
         }, 50 * j)
       }
     })
@@ -202,7 +212,7 @@ export default {
     toggleAllLabel.addEventListener('mouseleave', () => {
       for (let i = 0; i < sizeOptions.length; i++) {
         setTimeout(() => {
-          sizeOptions[i].removeAttribute('style');
+          sizeOptions[i].classList.remove('hover');
         }, 50 * i)
       }
     })
@@ -250,13 +260,41 @@ export default {
     image.addEventListener('change', () => {
       let ext = image.value.split('.')[image.value.split('.').length - 1];
 
-      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png') {
-        this.inputError = true;
-        plus.style.opacity = '0'
-        advanced.style.opacity = '.25'
+      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png' && ext != 'svg' && ext != 'gif') {
+        image.value = '';
+        this.fileError = true;
+        this.fileSelected = false;
       }
 
-      submit.removeAttribute('disabled');
+      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png' && ext == 'svg' || ext == 'gif') {
+        this.inputError = true;
+        this.fileSelected = false;
+        this.advanced = false;
+        toggleAll.checked = false;
+
+        for (let i = 0; i < sizeToggles.length; i++) {
+          sizeToggles[i].checked = false;
+        }
+
+        for (let i = 0; i < asyncOptions.length; i++) {
+          asyncOptions[i].checked = false;
+          // asyncToggles[i].classList.remove('show')
+        }
+
+        console.log(asyncToggle.checked)
+        submit.removeAttribute('disabled');
+      }
+
+      if (this.inputError && ext == 'svg') {
+        this.svgError = true;
+      }
+
+      if (ext == 'jpg' || ext == 'jpeg' || ext == 'png') {
+        this.fileSelected = true;
+        this.inputError = false;
+        this.svgError = false;
+        submit.removeAttribute('disabled');
+      }
     })
   },
   methods: {
@@ -276,29 +314,4 @@ export default {
 </script>
 
 <style lang="css">
-
-.async--options .option:not(:first-of-type) {
-  opacity: 0;
-  /* transition: opacity 50ms linear; */
-}
-
-.half {
-  opacity: .5 !important;
-}
-
-.show {
-  opacity: 1 !important;
-}
-
-@keyframes rotate {
-	0% {
-		transform: rotate(0deg);
-	}
-	50% {
-		transform: rotate(180deg);
-	}
-	100% {
-		transform: rotate(360deg);
-	}
-}
 </style>

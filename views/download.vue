@@ -3,7 +3,7 @@
     <img id="original" :src="original">
     <div class="output--wrapper">
       <h1>{{ filename }}</h1>
-      <div id="img--wrapper" data-width="800">
+      <div id="img--wrapper" data-width="800" style="height: 500px;">
         <div class="img" v-if="files.async">
           <a :href="files.async"><img class="int--img" :src="files.async" /></a>
           <h3>Async / 960px</h3>
@@ -28,8 +28,8 @@
           <a :href="files.async"><img class="int--img" :src="files.retina" /></a>
           <h3>Retina / 2560px</h3>
         </div>
-        <div class="img" v-if="files.original">
-          <a :href="files.original"><img class="int--img" :src="files.original" /></a>
+        <div class="img" v-if="files.original" style="height: 100%;">
+          <a :href="files.original"><img class="int--img" style="width: 100%" :src="files.original" /></a>
           <h3>Original / <span class="original--size"></span></h3>
         </div>
       </div>
@@ -49,7 +49,7 @@
 export default {
   data() {
     return {
-
+      files: ['turtle', 'horse']
     }
   },
   methods: {},
@@ -59,6 +59,7 @@ export default {
     }
   },
   mounted() {
+    console.log(this.files)
     let images = document.getElementsByClassName('img');
     let intImg = document.getElementsByClassName('int--img');
     let imgWrapper = document.getElementById('img--wrapper');
@@ -72,7 +73,7 @@ export default {
 
     original.addEventListener('load', () => {
       ratio = width / original.naturalWidth;
-      originalHeight = original.naturalHeight;
+      originalHeight = original.naturalHeight ? original.naturalHeight : 500;
       originalWidth = original.naturalWidth;
       originalSize.innerText = originalWidth + 'px'
 

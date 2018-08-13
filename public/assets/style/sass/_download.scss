@@ -94,12 +94,12 @@ code {
   margin: 5rem auto 0;
 
   a {
-    color: $lightgrey;
+    color: $white;
     margin: 12px;
     text-decoration: none;
     transition: all 120ms linear;
     &:hover {
-      color: $medgrey;
+      color: $white;
     }
   }
 }
