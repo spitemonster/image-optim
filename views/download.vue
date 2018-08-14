@@ -5,37 +5,40 @@
       <h1>{{ filename }}</h1>
       <div id="img--wrapper" data-width="800" style="height: 500px;">
         <div class="img" v-if="files.async">
-          <a :href="files.async"><img class="int--img" :src="files.async" /></a>
-          <h3>Async / 960px</h3>
+          <a :href="files.async.url"><img class="int--img" :src="files.async.url" /></a>
+          <h3>Async / 960px / {{ files.async.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.xsmall">
-          <a :href="files.async"><img class="int--img" :src="files.xsmall" /></a>
-          <h3>X-Small / 320px</h3>
+          <a :href="files.xsmall.url"><img class="int--img" :src="files.xsmall.url" /></a>
+          <h3>X-Small / 320px / {{ files.xsmall.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.small">
-          <a :href="files.async"><img class="int--img" :src="files.small" /></a>
-          <h3>Small / 480px</h3>
+          <a :href="files.small.url"><img class="int--img" :src="files.small.url" /></a>
+          <h3>Small / 480px / {{ files.small.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.medium">
-          <a :href="files.async"><img class="int--img" :src="files.medium" /></a>
-          <h3>Medium / 960px</h3>
+          <a :href="files.medium"><img class="int--img" :src="files.medium.url" /></a>
+          <h3>Medium / 960px / {{ files.medium.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.large">
-          <a :href="files.async"><img class="int--img" :src="files.large" /></a>
-          <h3>Large / 1280px</h3>
+          <a :href="files.large.url"><img class="int--img" :src="files.large.url" /></a>
+          <h3>Large / 1280px / {{ files.large.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.retina">
-          <a :href="files.async"><img class="int--img" :src="files.retina" /></a>
-          <h3>Retina / 2560px</h3>
+          <a :href="files.retina.url"><img class="int--img" :src="files.retina.url" /></a>
+          <h3>Retina / 2560px / {{ files.retina.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.original" style="height: 100%;">
-          <a :href="files.original"><img class="int--img" style="width: 100%" :src="files.original" /></a>
-          <h3>Original / <span class="original--size"></span></h3>
+          <a :href="files.original.url"><img class="int--img" style="width: 100%" :src="files.original.url" /></a>
+          <h3>Original / <span class="original--size"></span> / {{ files.original.fileSize }}</h3>
         </div>
       </div>
   <pre v-if="code" class="code--example"><code>
   {{ code }}
   </code></pre>
+  <div class="async--info">
+    <p>Example code is intended for use with the asynchronous image loading script available <a href="https://github.com/spitemonster/utilities">here</a></p>
+  </div>
       <div class="links">
           <a :href="zipUrl" class="link--button">Download Zip</a>
           <a href="/" class="link--button">Return</a>
@@ -49,7 +52,6 @@
 export default {
   data() {
     return {
-      files: ['turtle', 'horse']
     }
   },
   methods: {},

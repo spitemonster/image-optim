@@ -61,6 +61,10 @@ app.get('/download/:filename/zip', (req, res) => {
   })
 })
 
+app.get('/download/async.js', (req, res) => {
+  res.download(`./public/assets/scripts/async.js`)
+})
+
 app.post('/upload', (req, res) => {
   let fileName = req.body.outPutName
                  ? validator.blacklist(req.body.outPutName, './')
@@ -116,7 +120,7 @@ app.post('/upload', (req, res) => {
         if (data.type === 'Proceed') {
           methods.handleError(err)
         } else {
-          res.status(400).renderVue('404.vue', data)
+          res.status(data.statusCode).renderVue('404.vue', data)
         }
       })
   } else if (ext === '.svg') {

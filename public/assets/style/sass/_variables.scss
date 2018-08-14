@@ -1,10 +1,15 @@
-$white: #ffffff;
-$black: #1c1c1c;
-$lightgrey: #c3c3c3;
-$medgrey: #6f6f6f;
-$darkgrey: #333333;
-$accent: #FB3640;
-$error: #F4515E;
+// colors
+$white: hsla(0, 0%, 100%, 1);
+$black: hsla(0, 0%, 10%, 1);
+$lightgrey: hsla(0, 0%, 76%, 1);
+$medgrey: hsla(0, 0%, 44%, 1);
+$darkgrey: hsla(0, 0%, 20%, 1);
+$accent: hsla(357, 96%, 60%, 1);
+$error: hsla(355, 88%, 64%, 1);
 
+// font values
 $font-size: 16px;
 $font-family: 'Helvetica Neue', sans-serif;
+
+// animations and transitions
+$transition: all 120ms linear;

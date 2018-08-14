@@ -34,6 +34,42 @@ function resize (img, size, output) {
      .write(output)
 }
 
+function dropQuality (img) {
+  return img.clone()
+    .resize(960, Jimp.AUTO)
+    .quality(50)
+}
+
+function makeAsync (img, option, output) {
+  console.log('making async')
+  if (option === 'none') {
+    return dropQuality(img)
+              .writeAsync(output)
+  } else if (option === 'blur') {
+    return dropQuality(img)
+              .blur(15)
+              .writeAsync(output)
+  } else if (option === 'pixel') {
+    return dropQuality(img)
+              .pixelate(80)
+              .writeAsync(output)
+  } else if (option === 'tri') {
+    return dropQuality(img)
+              .getBuffer(img.getMIME(), (err, buffer) => {
+                return new Promise((resolve, reject) => {
+                  if (err) return handleError(err)
+                  let fileStream = fs.createWriteStream(output)
+                  let jpgStream = tessellate(buffer)
+                  jpgStream.on('data', function (chunk) { fileStream.write(chunk) })
+                  jpgStream.on('end', function () {
+                    fileStream.end()
+                  })
+                  resolve('done')
+                })
+              })
+  }
+}
+
 // async function. as it stands, if statements galore. would like to NOT but not sure how I can
 function generateAsync (directory, filename, option, ext) {
   let fn = `${filename}-original${ext}`
@@ -45,80 +81,16 @@ function generateAsync (directory, filename, option, ext) {
         return handleError(err)
       }
 
-      if (option === 'none' || !option) {
-        img.clone()
-          .resize(960, Jimp.AUTO)
-          .quality(50)
-          .writeAsync(output)
-          .catch((err) => {
-            if (err) return handleError(err)
-          })
-        resolve('done')
-      } if (option === 'blur') {
-        img.clone()
-           .resize(960, Jimp.AUTO)
-           .quality(50)
-           .blur(15)
-           .writeAsync(output)
-           .catch((err) => {
-             if (err) {
-               let errorData = {
-                 statusCode: 500,
-                 message: 'There was an error creating an asychronous version of your image. Please try again.',
-                 type: 'Failure'
-               }
-               handleError(err)
-               reject(errorData)
-             }
-           })
-        resolve('done')
-      } else if (option === 'pixel') {
-        img.clone()
-           .resize(960, Jimp.AUTO)
-           .quality(50)
-           .pixelate(80)
-           .writeAsync(output)
-           .catch((err) => {
-             if (err) {
-               let errorData = {
-                 statusCode: 500,
-                 message: 'There was an error creating an asychronous version of your image. Please try again.',
-                 type: 'Failure'
-               }
-               handleError(err)
-               reject(errorData)
-             }
-           })
-        resolve('done')
-      } else if (option === 'tri') {
-        img.clone()
-           .resize(960, Jimp.AUTO)
-           .quality(50)
-           .getBuffer(img.getMIME(), (err, buffer) => {
-             return new Promise((resolve, reject) => {
-               if (err) return handleError(err)
-               let fileStream = fs.createWriteStream(output)
-               let jpgStream = tessellate(buffer)
-               jpgStream.on('data', function (chunk) { fileStream.write(chunk) })
-               jpgStream.on('end', function () {
-                 fileStream.end()
-               })
-             }).then(() => {
-               resolve('done')
-             }).catch((err) => {
-               if (err) {
-                 let errorData = {
-                   statusCode: 500,
-                   message: 'There was an error creating an asychronous version of your image. Please try again.',
-                   type: 'Failure'
-                 }
-                 handleError(err)
-                 reject(errorData)
-               }
-             })
-           })
-        resolve('done')
+      makeAsync(img, option, output)
+      resolve('done')
+    }).catch((err) => {
+      let errorData = {
+        statusCode: 500,
+        message: 'There was an error creating an asychronous version of your image. Please try again.',
+        type: 'Failure'
       }
+      handleError(err)
+      reject(errorData)
     })
   })
 }
@@ -184,7 +156,23 @@ function optimizeImages (id) {
   })
 }
 
+function calculateFileSize (sizeInBytes) {
+  let size
+  if (sizeInBytes < 1000000) {
+    let kb = Math.round(sizeInBytes / 1000)
+    size = `~${kb}kb`
+  } else if (sizeInBytes >= 1000000) {
+    let mb = Math.round(sizeInBytes / 1000000)
+    size = `~${mb}mb`
+  } else if (sizeInBytes >= 1000000000) {
+    let gb = Math.round(sizeInBytes / 1000000000)
+    size = `~${gb}gb`
+  }
+  return size
+}
+
 function collectFiles (dir) {
+  // console.log(dir)
   return new Promise((resolve, reject) => {
     let data = {
       filename: '',
@@ -194,7 +182,7 @@ function collectFiles (dir) {
       code: '',
       original: ''
     }
-
+    // console.log(data)
     // probably an inefficient way to do this, but we read the target directory and return an array of all of the files in that directory
     let files = fs.readdirSync(path.join('./min', dir))
     if (fs.existsSync(`./min/${dir}/codeExample.html`)) {
@@ -205,14 +193,21 @@ function collectFiles (dir) {
       if (path.extname(files[i]) !== '.html') {
         let filename = files[i].split('-')
         let size = filename.pop().split('.')[0]
+        let imgData = {
+          url: '',
+          fileSize: ''
+        }
         data.filename = filename.join('-')
-        data.files[size] = `/min/${dir}/${files[i]}`
+        imgData.url = `/min/${dir}/${files[i]}`
+        imgData.fileSize = calculateFileSize(fs.statSync(`./min/${dir}/${files[i]}`).size)
+
+        data.files[size] = imgData
 
         if (size === 'original') {
           data.original = `/min/${dir}/${files[i]}`
         }
       }
-    }
+    };
 
     resolve(data)
   })

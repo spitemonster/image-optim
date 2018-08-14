@@ -19,7 +19,7 @@
   left: 0;
   overflow: hidden;
   box-sizing: border-box;
-  transition: all 120ms linear;
+  transition: $transition;
 
   &:not(:first-of-type),
   &:not(:last-of-type) {
@@ -44,7 +44,7 @@
     height: 100%;
     width: 800px;
     object-fit: fill;
-    transition: all 120ms linear;
+    transition: $transition;
   }
 
   &:hover {
@@ -66,7 +66,7 @@
     color: $white;
     letter-spacing: .125em;
     opacity: 0;
-    transition: all 120ms linear;
+    transition: $transition;
     width: 1000px;
   }
 }
@@ -97,9 +97,15 @@ code {
     color: $white;
     margin: 12px;
     text-decoration: none;
-    transition: all 120ms linear;
+    transition: $transition;
     &:hover {
       color: $white;
     }
   }
+}
+
+.async--info {
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
 }
