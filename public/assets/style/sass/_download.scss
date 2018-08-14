@@ -71,18 +71,21 @@
   }
 }
 
+.code--example {
+  width: 100%;
+  border: 3px solid $lightgrey;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+}
+
 code {
-  margin-top: 5rem;
   background: none;
   color: $lightgrey;
   font-weight: 100;
-  width: 100%;
   padding: 1rem 3rem 2.5rem;
   overflow-x: auto;
-  display: flex;
-  justify-content: center;
-  border: 3px solid $lightgrey;
-  border-radius: 8px;
+  display: inline-block;
 }
 
 .links {
