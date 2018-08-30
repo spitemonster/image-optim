@@ -278,7 +278,6 @@ export default {
 
         for (let i = 0; i < asyncOptions.length; i++) {
           asyncOptions[i].checked = false;
-          // asyncToggles[i].classList.remove('show')
         }
 
         console.log(asyncToggle.checked)
