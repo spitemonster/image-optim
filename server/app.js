@@ -120,8 +120,8 @@ app.post('/upload', (req, res) => {
   } else if (req.body.async !== 'on' && ext !== '.svg') {
     methods.resizeImages(id, fileName, sizes, ext)
       .then(function () { return methods.optimizeImages(id) })
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
       .then(function () { return methods.cleanDirectory(tempPath) })
+      .then(function () { return methods.printCode(fileName, ext, options, id) })
       .then(function () { return methods.zipDirectory(`./min/${id}`) })
       .then(function () { return res.redirect(`/download/${id}`) })
       .catch((err) => {

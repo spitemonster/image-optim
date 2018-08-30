@@ -2,7 +2,7 @@
   <div class="body--wrapper">
     <h1 class="logo">MMS</h1>
     <div class="form--wrapper">
-      <form action="/upload" name="upload" method="post" enctype="multipart/form-data" id="fileUpload">
+      <form action="/upload" name="upload" method="post" multiple enctype="multipart/form-data" id="fileUpload">
         <div class="filename">
           <label for="output-name">Output File Name</label>
           <input type="text" name="outPutName" value="" id="output-name"/>
@@ -278,7 +278,6 @@ export default {
 
         for (let i = 0; i < asyncOptions.length; i++) {
           asyncOptions[i].checked = false;
-          // asyncToggles[i].classList.remove('show')
         }
 
         console.log(asyncToggle.checked)
