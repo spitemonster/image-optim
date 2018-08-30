@@ -9,6 +9,7 @@ const path = require('path')
 const junk = require('junk')
 const randomstring = require('randomstring')
 const validator = require('validator')
+const getRawBody = require('raw-body')
 const vueOptions = {
   rootPath: 'views',
   head: {
@@ -26,7 +27,7 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
-cron.schedule('* * * * 12 *', () => {
+cron.schedule('* 12 * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
   console.log('cron running')
   methods.deleteOld(files)
@@ -47,10 +48,19 @@ app.get('/download/:filename', async (req, res) => {
   methods.collectFiles(dir)
     .then(function (data) { return res.renderVue('download.vue', data) })
     .catch((err) => {
-      let data = {
-        errMessage: err
+      let errorData = {
+        message: '',
+        statusCode: 404,
+        type: 'Failure'
       }
-      res.renderVue('404.vue', data)
+
+      if (err.syscall === 'scandir' && err.code === 'ENOENT') {
+        errorData.message = 'It appears this directory has expired, please upload your images again.'
+      } else {
+        errorData.message = 'There was an issue collecting your files. Please try again.'
+      }
+
+      res.status(errorData.statusCode).renderVue('404.vue', errorData)
     })
 })
 
@@ -105,8 +115,7 @@ app.post('/upload', (req, res) => {
       .then(function () { return methods.zipDirectory(`./min/${id}`) })
       .then(function () { return res.redirect(`/download/${id}`) })
       .catch((err) => {
-        let data = err
-        res.renderVue('404.vue', data)
+        res.status(err.statusCode).renderVue('404.vue', err)
       })
   } else if (req.body.async !== 'on' && ext !== '.svg') {
     methods.resizeImages(id, fileName, sizes, ext)
@@ -116,12 +125,7 @@ app.post('/upload', (req, res) => {
       .then(function () { return methods.zipDirectory(`./min/${id}`) })
       .then(function () { return res.redirect(`/download/${id}`) })
       .catch((err) => {
-        let data = err
-        if (data.type === 'Proceed') {
-          methods.handleError(err)
-        } else {
-          res.status(data.statusCode).renderVue('404.vue', data)
-        }
+        res.status(err.statusCode).renderVue('404.vue', err)
       })
   } else if (ext === '.svg') {
     methods.optimizeImages(id)
@@ -130,10 +134,7 @@ app.post('/upload', (req, res) => {
       .then(function () { return methods.zipDirectory(`./min/${id}`) })
       .then(res.redirect(`/download/${id}`))
       .catch((err) => {
-        let data = {
-          errMessage: err
-        }
-        res.renderVue('404.vue', data)
+        res.status(err.statusCode).renderVue('404.vue', err)
       })
   }
 })

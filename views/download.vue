@@ -17,7 +17,7 @@
           <h3>Small / 480px / {{ files.small.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.medium">
-          <a :href="files.medium"><img class="int--img" :src="files.medium.url" /></a>
+          <a :href="files.medium.url"><img class="int--img" :src="files.medium.url" /></a>
           <h3>Medium / 960px / {{ files.medium.fileSize }}</h3>
         </div>
         <div class="img" v-if="files.large">
