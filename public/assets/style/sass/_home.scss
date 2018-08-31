@@ -44,6 +44,11 @@ form {
   align-items: center;
   align-content: center;
   margin-top: 2rem;
+
+  label {
+    position: relative;
+    z-index: 2;
+  }
 }
 
 .advanced {
@@ -151,7 +156,7 @@ form {
 	opacity: 0;
 	overflow: hidden;
 	position: absolute;
-	z-index: 999;
+	z-index: 1;
 }
 
 .input--error {

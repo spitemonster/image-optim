@@ -186,16 +186,16 @@ export default {
     let outputName = document.getElementById('output-name')
 
     toggleAll.addEventListener('change', () => {
-      if (sizeToggles[0].checked) {
+      if (toggleAll.checked) {
         for (let i = 0; i < sizeToggles.length; i++) {
           setTimeout(() => {
-            sizeToggles[i].checked = !sizeToggles[i].checked;
+            sizeToggles[i].checked = true;
           }, 100 * i)
         }
       } else {
         for (let i = sizeToggles.length - 1, j = 0; i >= 0; i--, j++) {
           setTimeout(() => {
-            sizeToggles[i].checked = !sizeToggles[i].checked;
+            sizeToggles[i].checked = false;
           }, 100 * j)
         }
       }
@@ -241,22 +241,6 @@ export default {
       }
     })
 
-    asyncLabel.addEventListener('mouseenter', () => {
-      for (let i = 0; i < asyncToggles.length; i ++) {
-        setTimeout(() => {
-          asyncToggles[i].classList.add('half')
-        }, 100 * i)
-      }
-    })
-
-    asyncLabel.addEventListener('mouseleave', () => {
-      for (let i = asyncToggles.length - 1, j = 0; i >= 0; i--, j++) {
-        setTimeout(() => {
-          asyncToggles[i].classList.remove('half')
-        }, 100 * j)
-      }
-    })
-
     image.addEventListener('change', () => {
       let ext = image.value.split('.')[image.value.split('.').length - 1];
 
@@ -297,9 +281,6 @@ export default {
     })
   },
   methods: {
-    changeContent() {
-      this.content = 'Turtles are great!'
-    },
     wait() {
       let form = document.getElementsByClassName('form--wrapper')[0]
       let logo = document.getElementsByClassName('logo')[0]

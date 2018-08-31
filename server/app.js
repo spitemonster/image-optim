@@ -9,7 +9,6 @@ const path = require('path')
 const junk = require('junk')
 const randomstring = require('randomstring')
 const validator = require('validator')
-const getRawBody = require('raw-body')
 const vueOptions = {
   rootPath: 'views',
   head: {
@@ -17,6 +16,7 @@ const vueOptions = {
   }
 }
 const expressVueMiddleware = expressVue.init(vueOptions)
+
 let app = express()
 
 app.use(express.urlencoded({ extended: false }))
@@ -29,6 +29,40 @@ app.use(fileUpload())
 
 cron.schedule('* 12 * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
+  let date = Date(Date.now()).toString()
+
+  let message = ''
+  message += '\r\n<------------------------------>\r\n'
+  message += date + '\r\n'
+
+  if (files.length > 0) {
+    message += `Delete old Cron running, deleting ${files.length} files`
+  } else {
+    message += `Delete old Cron running, no files to delete`
+  }
+
+  if (!fs.existsSync(`./server/logs/cron.log`)) {
+    fs.writeFile(`./server/logs/cron.log`, message, (err) => {
+      if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+    })
+  } else {
+    fs.stat(`./server/logs/cron.log`, (err, stats) => {
+      if (err) {
+        if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+      }
+
+      if (stats.size > 10000) {
+        fs.writeFile(`./server/logs/cron.log`, message, (err) => {
+          if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+        })
+      } else {
+        fs.appendFile('./server/logs/cron.log', message, (err) => {
+          if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+        })
+      }
+    })
+  }
+
   console.log('cron running')
   methods.deleteOld(files)
   console.log('cron finished')
@@ -36,10 +70,6 @@ cron.schedule('* 12 * * *', () => {
 
 app.get('/', (req, res) => {
   res.renderVue('home.vue')
-})
-
-app.get('/wait', (req, res) => {
-  res.renderVue('wait.vue')
 })
 
 app.get('/download/:filename', async (req, res) => {
@@ -140,7 +170,7 @@ app.post('/upload', (req, res) => {
 })
 
 app.get('/404', (req, res) => {
-  res.send('404')
+  res.renderVue('404.vue')
 })
 
 app.listen('8888', () => {
