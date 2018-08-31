@@ -27,7 +27,7 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
-cron.schedule('* 12 * * *', () => {
+cron.schedule('5 * * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
   let date = Date(Date.now()).toString()
 
