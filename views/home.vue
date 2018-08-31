@@ -18,7 +18,7 @@
         </div>
 
         <div class="input--error" v-if="fileError">
-          <p>Please select a valid JP(E)G, PNG, SVG or GIF.</p>
+          <p>Please select a valid JP(E)G, PNG, SVG or GIF under 20MB.</p>
         </div>
 
         <div class="input--error" v-if="inputError">
@@ -243,6 +243,7 @@ export default {
 
     image.addEventListener('change', () => {
       let ext = image.value.split('.')[image.value.split('.').length - 1];
+      let file = image.files[0];
 
       if (ext != 'jpg' && ext != 'jpeg' && ext != 'png' && ext != 'svg' && ext != 'gif') {
         image.value = '';
@@ -264,7 +265,6 @@ export default {
           asyncOptions[i].checked = false;
         }
 
-        console.log(asyncToggle.checked)
         submit.removeAttribute('disabled');
       }
 
@@ -278,6 +278,13 @@ export default {
         this.svgError = false;
         submit.removeAttribute('disabled');
       }
+
+      // if (file.size > 20000000) {
+      //   image.value = '';
+      //   this.fileError = true;
+      //   this.fileSelected = false;
+      //   submit.setAttribute('disabled', true);
+      // }
     })
   },
   methods: {

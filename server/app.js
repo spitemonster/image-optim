@@ -135,38 +135,52 @@ app.post('/upload', (req, res) => {
     if (err) return methods.handleError(err)
   })
 
-  if (req.body.async === 'on' && ext !== '.svg') {
-    options['async'] = true
-    methods.resizeImages(id, fileName, sizes, ext)
-      .then(function () { return methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext) })
-      .then(function () { return methods.optimizeImages(id) })
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
-      .then(function () { return methods.cleanDirectory(tempPath) })
-      .then(function () { return methods.zipDirectory(`./min/${id}`) })
-      .then(function () { return res.redirect(`/download/${id}`) })
-      .catch((err) => {
-        res.status(err.statusCode).renderVue('404.vue', err)
-      })
-  } else if (req.body.async !== 'on' && ext !== '.svg') {
-    methods.resizeImages(id, fileName, sizes, ext)
-      .then(function () { return methods.optimizeImages(id) })
-      .then(function () { return methods.cleanDirectory(tempPath) })
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
-      .then(function () { return methods.zipDirectory(`./min/${id}`) })
-      .then(function () { return res.redirect(`/download/${id}`) })
-      .catch((err) => {
-        res.status(err.statusCode).renderVue('404.vue', err)
-      })
-  } else if (ext === '.svg') {
-    methods.optimizeImages(id)
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
-      .then(function () { return methods.cleanDirectory(tempPath) })
-      .then(function () { return methods.zipDirectory(`./min/${id}`) })
-      .then(res.redirect(`/download/${id}`))
-      .catch((err) => {
-        res.status(err.statusCode).renderVue('404.vue', err)
-      })
-  }
+  fs.stat(`${tempPath}/${fileName}-original${ext}`, (err, stats) => {
+    if (err) methods.handleError(err)
+
+    if (stats.size > 20000000) {
+      let errorData = {
+        message: 'Your file is too large. Please select a file smaller than 20MB.',
+        statusCode: 500,
+        type: 'Failure'
+      }
+
+      return res.status(400).renderVue('404.vue', errorData)
+    } else {
+      if (req.body.async === 'on' && ext !== '.svg') {
+        options['async'] = true
+        methods.resizeImages(id, fileName, sizes, ext)
+          .then(function () { return methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext) })
+          .then(function () { return methods.optimizeImages(id) })
+          .then(function () { return methods.printCode(fileName, ext, options, id) })
+          .then(function () { return methods.cleanDirectory(tempPath) })
+          .then(function () { return methods.zipDirectory(`./min/${id}`) })
+          .then(function () { return res.redirect(`/download/${id}`) })
+          .catch((err) => {
+            res.status(err.statusCode).renderVue('404.vue', err)
+          })
+      } else if (req.body.async !== 'on' && ext !== '.svg') {
+        methods.resizeImages(id, fileName, sizes, ext)
+          .then(function () { return methods.optimizeImages(id) })
+          .then(function () { return methods.cleanDirectory(tempPath) })
+          .then(function () { return methods.printCode(fileName, ext, options, id) })
+          .then(function () { return methods.zipDirectory(`./min/${id}`) })
+          .then(function () { return res.redirect(`/download/${id}`) })
+          .catch((err) => {
+            res.status(err.statusCode).renderVue('404.vue', err)
+          })
+      } else if (ext === '.svg') {
+        methods.optimizeImages(id)
+          .then(function () { return methods.printCode(fileName, ext, options, id) })
+          .then(function () { return methods.cleanDirectory(tempPath) })
+          .then(function () { return methods.zipDirectory(`./min/${id}`) })
+          .then(res.redirect(`/download/${id}`))
+          .catch((err) => {
+            res.status(err.statusCode).renderVue('404.vue', err)
+          })
+      }
+    }
+  })
 })
 
 app.get('/404', (req, res) => {
