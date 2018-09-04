@@ -354,10 +354,8 @@ function deleteOld (files) {
     let mTime = fs.statSync(`./min/${files[i]}`).mtimeMs
     let now = Date.now()
 
-    if ((now - mTime) >= 30000 && files[i] !== '.DS_Store') {
-      rimraf(`./min/${files[i]}`, () => {
-        console.log(files[i] + ' deleted')
-      })
+    if ((now - mTime) >= 259200000 && files[i] !== '.DS_Store') {
+      rimraf(`./min/${files[i]}`, () => {})
     }
   }
 }

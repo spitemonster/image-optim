@@ -27,7 +27,7 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
-cron.schedule('5 * * * *', () => {
+cron.schedule('* */12 * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
   let date = Date(Date.now()).toString()
 
@@ -37,6 +37,9 @@ cron.schedule('5 * * * *', () => {
 
   if (files.length > 0) {
     message += `Delete old Cron running, deleting ${files.length} files`
+    for (let i = 0; i < files.length; i++) {
+      message += `\r\nDeleting ${files[i]}`
+    }
   } else {
     message += `Delete old Cron running, no files to delete`
   }
