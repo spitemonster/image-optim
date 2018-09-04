@@ -9,7 +9,6 @@ const path = require('path')
 const junk = require('junk')
 const randomstring = require('randomstring')
 const validator = require('validator')
-const getRawBody = require('raw-body')
 const vueOptions = {
   rootPath: 'views',
   head: {
@@ -17,6 +16,7 @@ const vueOptions = {
   }
 }
 const expressVueMiddleware = expressVue.init(vueOptions)
+
 let app = express()
 
 app.use(express.urlencoded({ extended: false }))
@@ -27,8 +27,45 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
-cron.schedule('* 12 * * *', () => {
+cron.schedule('* */12 * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
+  let date = Date(Date.now()).toString()
+
+  let message = ''
+  message += '\r\n<------------------------------>\r\n'
+  message += date + '\r\n'
+
+  if (files.length > 0) {
+    message += `Delete old Cron running, deleting ${files.length} files`
+    for (let i = 0; i < files.length; i++) {
+      message += `\r\nDeleting ${files[i]}`
+    }
+  } else {
+    message += `Delete old Cron running, no files to delete`
+  }
+
+  if (!fs.existsSync(`./server/logs/cron.log`)) {
+    fs.writeFile(`./server/logs/cron.log`, message, (err) => {
+      if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+    })
+  } else {
+    fs.stat(`./server/logs/cron.log`, (err, stats) => {
+      if (err) {
+        if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+      }
+
+      if (stats.size > 10000) {
+        fs.writeFile(`./server/logs/cron.log`, message, (err) => {
+          if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+        })
+      } else {
+        fs.appendFile('./server/logs/cron.log', message, (err) => {
+          if (err) { methods.handleError(err); return console.log('Error writing to error log') }
+        })
+      }
+    })
+  }
+
   console.log('cron running')
   methods.deleteOld(files)
   console.log('cron finished')
@@ -36,10 +73,6 @@ cron.schedule('* 12 * * *', () => {
 
 app.get('/', (req, res) => {
   res.renderVue('home.vue')
-})
-
-app.get('/wait', (req, res) => {
-  res.renderVue('wait.vue')
 })
 
 app.get('/download/:filename', async (req, res) => {
@@ -105,42 +138,56 @@ app.post('/upload', (req, res) => {
     if (err) return methods.handleError(err)
   })
 
-  if (req.body.async === 'on' && ext !== '.svg') {
-    options['async'] = true
-    methods.resizeImages(id, fileName, sizes, ext)
-      .then(function () { return methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext) })
-      .then(function () { return methods.optimizeImages(id) })
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
-      .then(function () { return methods.cleanDirectory(tempPath) })
-      .then(function () { return methods.zipDirectory(`./min/${id}`) })
-      .then(function () { return res.redirect(`/download/${id}`) })
-      .catch((err) => {
-        res.status(err.statusCode).renderVue('404.vue', err)
-      })
-  } else if (req.body.async !== 'on' && ext !== '.svg') {
-    methods.resizeImages(id, fileName, sizes, ext)
-      .then(function () { return methods.optimizeImages(id) })
-      .then(function () { return methods.cleanDirectory(tempPath) })
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
-      .then(function () { return methods.zipDirectory(`./min/${id}`) })
-      .then(function () { return res.redirect(`/download/${id}`) })
-      .catch((err) => {
-        res.status(err.statusCode).renderVue('404.vue', err)
-      })
-  } else if (ext === '.svg') {
-    methods.optimizeImages(id)
-      .then(function () { return methods.printCode(fileName, ext, options, id) })
-      .then(function () { return methods.cleanDirectory(tempPath) })
-      .then(function () { return methods.zipDirectory(`./min/${id}`) })
-      .then(res.redirect(`/download/${id}`))
-      .catch((err) => {
-        res.status(err.statusCode).renderVue('404.vue', err)
-      })
-  }
+  fs.stat(`${tempPath}/${fileName}-original${ext}`, (err, stats) => {
+    if (err) methods.handleError(err)
+
+    if (stats.size > 20000000) {
+      let errorData = {
+        message: 'Your file is too large. Please select a file smaller than 20MB.',
+        statusCode: 500,
+        type: 'Failure'
+      }
+
+      return res.status(400).renderVue('404.vue', errorData)
+    } else {
+      if (req.body.async === 'on' && ext !== '.svg') {
+        options['async'] = true
+        methods.resizeImages(id, fileName, sizes, ext)
+          .then(function () { return methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext) })
+          .then(function () { return methods.optimizeImages(id) })
+          .then(function () { return methods.printCode(fileName, ext, options, id) })
+          .then(function () { return methods.cleanDirectory(tempPath) })
+          .then(function () { return methods.zipDirectory(`./min/${id}`) })
+          .then(function () { return res.redirect(`/download/${id}`) })
+          .catch((err) => {
+            res.status(err.statusCode).renderVue('404.vue', err)
+          })
+      } else if (req.body.async !== 'on' && ext !== '.svg') {
+        methods.resizeImages(id, fileName, sizes, ext)
+          .then(function () { return methods.optimizeImages(id) })
+          .then(function () { return methods.cleanDirectory(tempPath) })
+          .then(function () { return methods.printCode(fileName, ext, options, id) })
+          .then(function () { return methods.zipDirectory(`./min/${id}`) })
+          .then(function () { return res.redirect(`/download/${id}`) })
+          .catch((err) => {
+            res.status(err.statusCode).renderVue('404.vue', err)
+          })
+      } else if (ext === '.svg') {
+        methods.optimizeImages(id)
+          .then(function () { return methods.printCode(fileName, ext, options, id) })
+          .then(function () { return methods.cleanDirectory(tempPath) })
+          .then(function () { return methods.zipDirectory(`./min/${id}`) })
+          .then(res.redirect(`/download/${id}`))
+          .catch((err) => {
+            res.status(err.statusCode).renderVue('404.vue', err)
+          })
+      }
+    }
+  })
 })
 
 app.get('/404', (req, res) => {
-  res.send('404')
+  res.renderVue('404.vue')
 })
 
 app.listen('8888', () => {

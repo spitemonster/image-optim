@@ -41,6 +41,7 @@
   </div>
       <div class="links">
           <a :href="zipUrl" class="link--button">Download Zip</a>
+          <a href="https://github.com/spitemonster/image-optim" class="link--button">Report Bug / Request Feature</a>
           <a href="/" class="link--button">Return</a>
       </div>
     </div>

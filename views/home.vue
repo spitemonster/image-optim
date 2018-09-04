@@ -2,7 +2,7 @@
   <div class="body--wrapper">
     <h1 class="logo">MMS</h1>
     <div class="form--wrapper">
-      <form action="/upload" name="upload" method="post" enctype="multipart/form-data" id="fileUpload">
+      <form action="/upload" name="upload" method="post" multiple enctype="multipart/form-data" id="fileUpload">
         <div class="filename">
           <label for="output-name">Output File Name</label>
           <input type="text" name="outPutName" value="" id="output-name"/>
@@ -18,7 +18,7 @@
         </div>
 
         <div class="input--error" v-if="fileError">
-          <p>Please select a valid JP(E)G, PNG, SVG or GIF.</p>
+          <p>Please select a valid JP(E)G, PNG, SVG or GIF under 20MB.</p>
         </div>
 
         <div class="input--error" v-if="inputError">
@@ -186,16 +186,16 @@ export default {
     let outputName = document.getElementById('output-name')
 
     toggleAll.addEventListener('change', () => {
-      if (sizeToggles[0].checked) {
+      if (toggleAll.checked) {
         for (let i = 0; i < sizeToggles.length; i++) {
           setTimeout(() => {
-            sizeToggles[i].checked = !sizeToggles[i].checked;
+            sizeToggles[i].checked = true;
           }, 100 * i)
         }
       } else {
         for (let i = sizeToggles.length - 1, j = 0; i >= 0; i--, j++) {
           setTimeout(() => {
-            sizeToggles[i].checked = !sizeToggles[i].checked;
+            sizeToggles[i].checked = false;
           }, 100 * j)
         }
       }
@@ -241,24 +241,9 @@ export default {
       }
     })
 
-    asyncLabel.addEventListener('mouseenter', () => {
-      for (let i = 0; i < asyncToggles.length; i ++) {
-        setTimeout(() => {
-          asyncToggles[i].classList.add('half')
-        }, 100 * i)
-      }
-    })
-
-    asyncLabel.addEventListener('mouseleave', () => {
-      for (let i = asyncToggles.length - 1, j = 0; i >= 0; i--, j++) {
-        setTimeout(() => {
-          asyncToggles[i].classList.remove('half')
-        }, 100 * j)
-      }
-    })
-
     image.addEventListener('change', () => {
       let ext = image.value.split('.')[image.value.split('.').length - 1];
+      let file = image.files[0];
 
       if (ext != 'jpg' && ext != 'jpeg' && ext != 'png' && ext != 'svg' && ext != 'gif') {
         image.value = '';
@@ -280,7 +265,6 @@ export default {
           asyncOptions[i].checked = false;
         }
 
-        console.log(asyncToggle.checked)
         submit.removeAttribute('disabled');
       }
 
@@ -294,12 +278,16 @@ export default {
         this.svgError = false;
         submit.removeAttribute('disabled');
       }
+
+      // if (file.size > 20000000) {
+      //   image.value = '';
+      //   this.fileError = true;
+      //   this.fileSelected = false;
+      //   submit.setAttribute('disabled', true);
+      // }
     })
   },
   methods: {
-    changeContent() {
-      this.content = 'Turtles are great!'
-    },
     wait() {
       let form = document.getElementsByClassName('form--wrapper')[0]
       let logo = document.getElementsByClassName('logo')[0]

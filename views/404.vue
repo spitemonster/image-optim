@@ -1,6 +1,6 @@
 <template lang="html">
   <div class="body--wrapper">
-    <h1 class="logo">IMGIT</h1>
+    <h1 class="logo">MMS</h1>
     <div class="output--wrapper">
       <h1>{{ statusCode }}</h1>
       <p>{{ message }}</p>

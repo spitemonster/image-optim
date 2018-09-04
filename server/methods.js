@@ -92,7 +92,20 @@ function calculateFileSize (sizeInBytes) {
 }
 
 // BEGIN EXPORT METHODS
+function validateFile (filepath) {
+  return new Promise((resolve, reject) => {
+    fs.stat(filepath, (err, stats) => {
+      if (err) return handleError(err)
 
+      if (stats.size > 20000000) {
+        let error = new Error('File is too big')
+        reject(error)
+      } else {
+        resolve('done')
+      }
+    })
+  })
+}
 // async function. as it stands, if statements galore. would like to NOT but not sure how I can
 function generateAsync (directory, filename, option, ext) {
   let fn = `${filename}-original${ext}`
@@ -341,10 +354,8 @@ function deleteOld (files) {
     let mTime = fs.statSync(`./min/${files[i]}`).mtimeMs
     let now = Date.now()
 
-    if ((now - mTime) >= 30000 && files[i] !== '.DS_Store') {
-      rimraf(`./min/${files[i]}`, () => {
-        console.log(files[i] + ' deleted')
-      })
+    if ((now - mTime) >= 259200000 && files[i] !== '.DS_Store') {
+      rimraf(`./min/${files[i]}`, () => {})
     }
   }
 }
@@ -358,3 +369,4 @@ module.exports.handleError = handleError
 module.exports.deleteOld = deleteOld
 module.exports.generateAsync = generateAsync
 module.exports.collectFiles = collectFiles
+module.exports.validateFile = validateFile
