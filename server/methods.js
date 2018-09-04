@@ -92,19 +92,34 @@ function calculateFileSize (sizeInBytes) {
 }
 
 // BEGIN EXPORT METHODS
-function validateFile (filepath) {
-  return new Promise((resolve, reject) => {
-    fs.stat(filepath, (err, stats) => {
-      if (err) return handleError(err)
+function validateFile (ext, size) {
+  let data = {
+    valid: false,
+    statusCode: 0,
+    errorMessage: ''
+  }
 
-      if (stats.size > 20000000) {
-        let error = new Error('File is too big')
-        reject(error)
-      } else {
-        resolve('done')
-      }
-    })
-  })
+  let extensions = ['.jpg', '.jpeg', '.png', '.svg', '.gif']
+  let max = 20000000
+
+  for (let i = 0; i < extensions.length; i++) {
+    if (ext === extensions[i]) {
+      data.valid = true
+      break
+    } else if (ext !== extensions[i]) {
+      data.valid = false
+      data.statusCode = 415
+      data.errorMessage = 'Please select a valid JP(E)G, PNG, SVG or GIF.'
+    }
+  }
+
+  if (size > max) {
+    data.valid = false
+    data.statusCode = 413
+    data.errorMessage = 'File is too large. Please select an image under 20mb.'
+  }
+
+  return data
 }
 // async function. as it stands, if statements galore. would like to NOT but not sure how I can
 function generateAsync (directory, filename, option, ext) {
@@ -161,7 +176,7 @@ function resizeImages (id, filename, sizes, ext) {
         handleError(err)
         let errorData = {
           message: `We're having trouble reading the file you uploaded. Please confirm the file is not corrupted and try again.`,
-          statusCode: 415,
+          statusCode: 422,
           type: 'Failure'
         }
         cleanDirectory(directory)

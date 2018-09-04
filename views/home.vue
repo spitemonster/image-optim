@@ -78,7 +78,7 @@
           </div>
 
           <label class="section--label">Async Options</label>
-          <p>If Async is selected, an image 960px wide with reduced quality will be created, with optional blurring and pixellation</p>
+          <p>If Async is selected, an image 960px wide with reduced quality will be created, with optional blurring, pixellation or tessellation</p>
           <div class="async--options">
             <div class="option">
               <input type="checkbox" name="async" id="async" v-model="asyncSelected"/>
@@ -160,7 +160,6 @@
 export default {
   data() {
     return {
-      content: 'Turtles are awful',
       asyncSelected: false,
       advanced: false,
       inputError: false,
@@ -185,6 +184,7 @@ export default {
     let submit = document.getElementById('submit');
     let outputName = document.getElementById('output-name')
 
+    // toggle all size options on or off
     toggleAll.addEventListener('change', () => {
       if (toggleAll.checked) {
         for (let i = 0; i < sizeToggles.length; i++) {
@@ -201,6 +201,7 @@ export default {
       }
     });
 
+    // out from right animation on sizes when hovering toggle all
     toggleAllLabel.addEventListener('mouseenter', () => {
       for (let i = sizeOptions.length - 1, j = 0; i >= 0; i--, j++) {
         setTimeout(() => {
@@ -209,6 +210,7 @@ export default {
       }
     })
 
+    // reverses animation above
     toggleAllLabel.addEventListener('mouseleave', () => {
       for (let i = 0; i < sizeOptions.length; i++) {
         setTimeout(() => {
@@ -217,6 +219,7 @@ export default {
       }
     })
 
+    // reads file name and replaces inner text of input label with filename
     fileInput.addEventListener('change', () => {
       let fileArray = fileInput.value.split('\\');
       let file = fileArray[fileArray.length - 1];
@@ -225,6 +228,7 @@ export default {
       fileName.innerText = file;
     })
 
+    // animation for async
     asyncToggle.addEventListener('change', () => {
       if (asyncToggles[0].classList.contains('show')) {
         for (let i = asyncToggles.length - 1, j = 0; i >= 0; i--, j++) {
@@ -241,6 +245,7 @@ export default {
       }
     })
 
+    // front end image validation. if not jp(e)g, png, svg or gif, reject it. if bigger than 20mb, reject it.
     image.addEventListener('change', () => {
       let ext = image.value.split('.')[image.value.split('.').length - 1];
       let file = image.files[0];
@@ -279,15 +284,16 @@ export default {
         submit.removeAttribute('disabled');
       }
 
-      // if (file.size > 20000000) {
-      //   image.value = '';
-      //   this.fileError = true;
-      //   this.fileSelected = false;
-      //   submit.setAttribute('disabled', true);
-      // }
+      if (file.size > 20000000) {
+        image.value = '';
+        this.fileError = true;
+        this.fileSelected = false;
+        submit.setAttribute('disabled', true);
+      }
     })
   },
   methods: {
+    // turns on wait animation
     wait() {
       let form = document.getElementsByClassName('form--wrapper')[0]
       let logo = document.getElementsByClassName('logo')[0]

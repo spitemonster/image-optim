@@ -141,14 +141,17 @@ app.post('/upload', (req, res) => {
   fs.stat(`${tempPath}/${fileName}-original${ext}`, (err, stats) => {
     if (err) methods.handleError(err)
 
-    if (stats.size > 20000000) {
+    let valid = methods.validateFile(ext, stats.size)
+
+    // backend image validation. probably a more efficient way to handle this but works for now.
+    if (!valid.valid) {
+      // if image is bigger than 20mb or invalid extension, reject and let 'em know why
       let errorData = {
-        message: 'Your file is too large. Please select a file smaller than 20MB.',
-        statusCode: 500,
-        type: 'Failure'
+        message: valid.errorMessage,
+        statusCode: valid.statusCode
       }
 
-      return res.status(400).renderVue('404.vue', errorData)
+      return res.status(500).renderVue('404.vue', errorData)
     } else {
       if (req.body.async === 'on' && ext !== '.svg') {
         options['async'] = true
