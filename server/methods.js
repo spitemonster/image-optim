@@ -45,7 +45,6 @@ function dropQuality (img) {
     .quality(50)
 }
 
-// refactored version of the generate async function. way more efficient in terms of lines, less repetition
 function makeAsync (img, option, output) {
   if (option === 'none') {
     return dropQuality(img)
@@ -121,7 +120,7 @@ function validateFile (ext, size) {
 
   return data
 }
-// async function. as it stands, if statements galore. would like to NOT but not sure how I can
+
 function generateAsync (directory, filename, option, ext) {
   let fn = `${filename}-original${ext}`
   let output = `${directory}/${filename}-async${ext}`
@@ -370,7 +369,9 @@ function deleteOld (files) {
     let now = Date.now()
 
     if ((now - mTime) >= 259200000 && files[i] !== '.DS_Store') {
-      rimraf(`./min/${files[i]}`, () => {})
+      rimraf(`./min/${files[i]}`, () => {
+
+      })
     }
   }
 }

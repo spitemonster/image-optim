@@ -27,7 +27,7 @@ app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
-cron.schedule('* */12 * * *', () => {
+cron.schedule('0 */12 * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
   let date = Date(Date.now()).toString()
 
@@ -54,7 +54,7 @@ cron.schedule('* */12 * * *', () => {
         if (err) { methods.handleError(err); return console.log('Error writing to error log') }
       }
 
-      if (stats.size > 10000) {
+      if (stats.size > 100000) {
         fs.writeFile(`./server/logs/cron.log`, message, (err) => {
           if (err) { methods.handleError(err); return console.log('Error writing to error log') }
         })
@@ -66,9 +66,7 @@ cron.schedule('* */12 * * *', () => {
     })
   }
 
-  console.log('cron running')
   methods.deleteOld(files)
-  console.log('cron finished')
 })
 
 app.get('/', (req, res) => {
@@ -109,13 +107,19 @@ app.get('/download/async.js', (req, res) => {
 })
 
 app.post('/upload', (req, res) => {
+  // validate name the user used and use that as the filename
   let fileName = req.body.outPutName
                  ? validator.blacklist(req.body.outPutName, './')
                  : req.files.inputImage.name.split('.')[0]
+  // get extension
   let ext = path.extname(req.files.inputImage.name)
+  // blank array
   let sizes = []
+  // empty object
   let options = {}
+  // generate random ID
   let id = randomstring.generate(12)
+  // temp directory to hold files until optimization
   let tempPath = path.join('./uploads/temp/', id)
 
   if (!req.body.sizes) {
@@ -131,21 +135,24 @@ app.post('/upload', (req, res) => {
     }
   }
 
+  // make temp directory
   fs.mkdirSync(tempPath)
+  // make optimized output directory
   fs.mkdirSync(`./min/${id}`)
 
+  // copy uploaded file to temp directory
   fs.writeFileSync(`${tempPath}/${fileName}-original${ext}`, req.files.inputImage.data, (err) => {
     if (err) return methods.handleError(err)
   })
 
+  // read the file and then work the juju
   fs.stat(`${tempPath}/${fileName}-original${ext}`, (err, stats) => {
     if (err) methods.handleError(err)
 
     let valid = methods.validateFile(ext, stats.size)
 
-    // backend image validation. probably a more efficient way to handle this but works for now.
+    // if image is bigger than 20mb or invalid extension, reject and let 'em know why
     if (!valid.valid) {
-      // if image is bigger than 20mb or invalid extension, reject and let 'em know why
       let errorData = {
         message: valid.errorMessage,
         statusCode: valid.statusCode
