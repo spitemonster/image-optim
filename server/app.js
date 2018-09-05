@@ -75,9 +75,16 @@ app.get('/', (req, res) => {
 
 app.get('/download/:filename', async (req, res) => {
   let dir = req.params.filename
+  let created = fs.statSync(`./min/${dir}.zip`).birthtimeMs
 
   methods.collectFiles(dir)
-    .then(function (data) { return res.renderVue('download.vue', data) })
+    .then(function (files) {
+      let data = {
+        files: files,
+        created: created
+      }
+      return res.renderVue('download.vue', data)
+    })
     .catch((err) => {
       let errorData = {
         message: '',

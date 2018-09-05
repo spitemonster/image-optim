@@ -1,41 +1,44 @@
 <template lang="html">
   <div class="body--wrapper">
-    <img id="original" :src="original">
+    <img id="original" :src="files.files.original.url">
     <div class="output--wrapper">
-      <h1>{{ filename }}</h1>
+      <h1>{{ files.filename }}</h1>
       <div id="img--wrapper" data-width="800" style="height: 500px;">
-        <div class="img" v-if="files.async">
-          <a :href="files.async.url"><img class="int--img" :src="files.async.url" /></a>
-          <h3>Async / 960px / {{ files.async.fileSize }}</h3>
+        <div class="img" v-if="files.files.async">
+          <a :href="files.files.async.url"><img class="int--img" :src="files.files.async.url" /></a>
+          <h3>Async / 960px / {{ files.files.async.fileSize }}</h3>
         </div>
-        <div class="img" v-if="files.xsmall">
-          <a :href="files.xsmall.url"><img class="int--img" :src="files.xsmall.url" /></a>
-          <h3>X-Small / 320px / {{ files.xsmall.fileSize }}</h3>
+        <div class="img" v-if="files.files.xsmall">
+          <a :href="files.files.xsmall.url"><img class="int--img" :src="files.files.xsmall.url" /></a>
+          <h3>X-Small / 320px / {{ files.files.xsmall.fileSize }}</h3>
         </div>
-        <div class="img" v-if="files.small">
-          <a :href="files.small.url"><img class="int--img" :src="files.small.url" /></a>
-          <h3>Small / 480px / {{ files.small.fileSize }}</h3>
+        <div class="img" v-if="files.files.small">
+          <a :href="files.files.small.url"><img class="int--img" :src="files.files.small.url" /></a>
+          <h3>Small / 480px / {{ files.files.small.fileSize }}</h3>
         </div>
-        <div class="img" v-if="files.medium">
-          <a :href="files.medium.url"><img class="int--img" :src="files.medium.url" /></a>
-          <h3>Medium / 960px / {{ files.medium.fileSize }}</h3>
+        <div class="img" v-if="files.files.medium">
+          <a :href="files.files.medium.url"><img class="int--img" :src="files.files.medium.url" /></a>
+          <h3>Medium / 960px / {{ files.files.medium.fileSize }}</h3>
         </div>
-        <div class="img" v-if="files.large">
-          <a :href="files.large.url"><img class="int--img" :src="files.large.url" /></a>
-          <h3>Large / 1280px / {{ files.large.fileSize }}</h3>
+        <div class="img" v-if="files.files.large">
+          <a :href="files.files.large.url"><img class="int--img" :src="files.files.large.url" /></a>
+          <h3>Large / 1280px / {{ files.files.large.fileSize }}</h3>
         </div>
-        <div class="img" v-if="files.retina">
-          <a :href="files.retina.url"><img class="int--img" :src="files.retina.url" /></a>
-          <h3>Retina / 2560px / {{ files.retina.fileSize }}</h3>
+        <div class="img" v-if="files.files.retina">
+          <a :href="files.files.retina.url"><img class="int--img" :src="files.files.retina.url" /></a>
+          <h3>Retina / 2560px / {{ files.files.retina.fileSize }}</h3>
         </div>
-        <div class="img" v-if="files.original" style="height: 100%;">
-          <a :href="files.original.url"><img class="int--img" style="width: 100%" :src="files.original.url" /></a>
-          <h3>Original / <span class="original--size"></span> / {{ files.original.fileSize }}</h3>
+        <div class="img" v-if="files.files.original" style="height: 100%;">
+          <a :href="files.files.original.url"><img class="int--img" style="width: 100%" :src="files.files.original.url" /></a>
+          <h3>Original / <span class="original--size"></span> / {{ files.files.original.fileSize }}</h3>
         </div>
       </div>
-  <pre v-if="code" class="code--example"><code>
-  {{ code }}
+  <pre v-if="files.code" class="code--example"><code>
+  {{ files.code }}
   </code></pre>
+  <div class="exp">
+    <p>This file will expire in {{ exp }}</p>
+  </div>
   <div class="async--info">
     <p>Example code is intended for use with the asynchronous image loading script available <a href="https://github.com/spitemonster/utilities">here</a></p>
   </div>
@@ -53,16 +56,43 @@
 export default {
   data() {
     return {
+      exp: "00:00:00"
     }
   },
-  methods: {},
+  methods: {
+    msToTime() {
+      let exp = this.created + 259200000
+      let now = Date.now()
+      let ms = exp - now
+        // 1- Convert to seconds:
+      var seconds = ms / 1000
+        // 2- Extract hours:
+      var hours = parseInt(seconds / 3600) // 3,600 seconds in 1 hour
+      seconds = seconds % 3600 // seconds remaining after extracting hours
+        // 3- Extract minutes:
+      var minutes = parseInt(seconds / 60) // 60 seconds in 1 minute
+        // 4- Keep only seconds not extracted to minutes:
+      seconds = Math.floor(seconds % 60)
+
+      if (minutes < 10) {
+        minutes = '0' + minutes
+      }
+
+      if (seconds < 10) {
+        seconds = '0' + seconds
+      }
+
+      this.exp = hours + ':' + minutes + ':' + seconds
+    }
+  },
   computed: {
     formatCode() {
         return this.code.split('\r\n').join('<br />').toString()
     }
   },
   mounted() {
-    console.log(this.files)
+    this.msToTime()
+
     let images = document.getElementsByClassName('img');
     let intImg = document.getElementsByClassName('int--img');
     let imgWrapper = document.getElementById('img--wrapper');
@@ -75,6 +105,7 @@ export default {
     let originalSize = document.getElementsByClassName('original--size')[0];
 
     original.addEventListener('load', () => {
+      console.log('load')
       ratio = width / original.naturalWidth;
       originalHeight = original.naturalHeight ? original.naturalHeight : 500;
       originalWidth = original.naturalWidth;
@@ -91,6 +122,10 @@ export default {
         intImg[i].style.width = width + 'px';
       }
     })
+
+    setInterval(() => {
+      this.msToTime()
+    }, 1000)
   }
 }
 

@@ -112,3 +112,11 @@ code {
   margin: 0 auto;
   text-align: center;
 }
+
+.exp {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem;
+}
