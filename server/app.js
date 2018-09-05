@@ -18,6 +18,15 @@ const vueOptions = {
 const expressVueMiddleware = expressVue.init(vueOptions)
 const kue = require('kue')
 const queue = kue.createQueue()
+const cluster = require('cluster')
+const clusterWorkerSize = require('os').cpus().length
+
+cluster.on('exit', function (worker) {
+    // Replace the dead worker,
+    // we're not sentimental
+  console.log('Worker %d died :(', worker.id)
+  cluster.fork()
+})
 
 queue.process('process', 2, function (job, done) {
   methods.processImage(job.data, done)
@@ -162,6 +171,12 @@ app.get('/404', (req, res) => {
   res.renderVue('404.vue')
 })
 
-app.listen('8888', () => {
-  console.log('Listening on port 8888')
-})
+if (cluster.isMaster) {
+  for (var i = 0; i < clusterWorkerSize; i += 1) {
+    cluster.fork()
+  }
+} else {
+  console.log('app running')
+  app.listen('8888', () => {
+  })
+}
