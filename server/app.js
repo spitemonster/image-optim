@@ -19,7 +19,7 @@ const expressVueMiddleware = expressVue.init(vueOptions)
 const kue = require('kue')
 const queue = kue.createQueue()
 
-queue.process('process', function (job, done) {
+queue.process('process', 2, function (job, done) {
   methods.processImage(job.data, done)
         .catch((err) => {
           methods.handleError(err)
@@ -135,8 +135,6 @@ app.post('/upload', (req, res) => {
 
   fs.mkdirSync(`./uploads/temp/${id}`)
   fs.mkdirSync(`./min/${id}`)
-
-  // copy uploaded file to temp directory
   fs.writeFileSync(`./uploads/temp/${id}/${fileName}-original${ext}`, imageData, (err) => {
     if (err) return methods.handleError(err)
   })
