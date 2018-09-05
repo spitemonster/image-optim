@@ -148,6 +148,7 @@ function generateAsync (directory, filename, option, ext) {
 
 // resize images that are uploaded
 function resizeImages (id, filename, sizes, ext) {
+  console.log('resizing')
   let sizeOptions = {
     'xsmall': 320,
     'small': 480,
@@ -187,6 +188,7 @@ function resizeImages (id, filename, sizes, ext) {
 
 // optimizing images in the temp directory
 function optimizeImages (id) {
+  console.log('optimizing')
   return new Promise((resolve, reject) => {
     imagemin([`./uploads/temp/${id}/` + '*.{jpg,png,jpeg,svg,gif}'], `./min/${id}/`, {
       plugins: [
@@ -258,6 +260,7 @@ function collectFiles (dir) {
 
 // give it a directory and it removes all files from it. this is specifically for removing all files from the temp directory without actually removing the temp directory. as with everything else, written as a promise so things can be chained and run in sequence instead of simultaneously
 function cleanDirectory (directory) {
+  console.log('cleaning')
   return new Promise((resolve, reject) => {
     rimraf(directory, (err) => {
       if (err) { return handleError(err) }
@@ -268,6 +271,7 @@ function cleanDirectory (directory) {
 
 // zip a directory
 function zipDirectory (directory) {
+  console.log('zipping')
   return new Promise((resolve, reject) => {
     zipFolder(directory, `${directory}.zip`, (err) => {
       if (err) { return handleError(err) } else { resolve('done') }
@@ -365,7 +369,7 @@ function deleteOld (files) {
   }
 
   for (let i = 0; i < files.length; i++) {
-    let mTime = fs.statSync(`./min/${files[i]}`).mtimeMs
+    let mTime = fs.statSync(`./min/${files[i]}`).birthtimeMs
     let now = Date.now()
 
     if ((now - mTime) >= 259200000 && files[i] !== '.DS_Store') {
@@ -374,6 +378,80 @@ function deleteOld (files) {
       })
     }
   }
+}
+
+function processImage (data, done) {
+  let options = {}
+  let sizeOptions = []
+  let tempPath = `./uploads/temp/${data.uuid}`
+
+  return new Promise((resolve, reject) => {
+    if (!data.sizes) {
+      sizeOptions = [null]
+    } else if (typeof sizes === 'string') {
+      sizeOptions.push(data.sizes)
+      options[sizeOptions[0]] = true
+    } else {
+      sizeOptions = data.sizes
+
+      for (let i = 0; i < sizeOptions.length; i++) {
+        options[sizeOptions[i]] = true
+      }
+    }
+
+    // make temp directory
+
+    // make optimized output directory
+
+    // read the file and then work the juju
+    fs.stat(`${tempPath}/${data.fileName}-original${data.ext}`, (err, stats) => {
+      if (err) handleError(err)
+
+      let valid = validateFile(data.ext, stats.size)
+
+      // if image is bigger than 20mb or invalid extension, reject and let 'em know why
+      if (!valid.valid) {
+        let errorData = {
+          message: valid.errorMessage,
+          statusCode: valid.statusCode
+        }
+        reject(errorData)
+      }
+
+      if (data.async === 'on' && data.ext !== '.svg') {
+        options['async'] = true
+        resizeImages(data.uuid, data.fileName, data.sizes, data.ext)
+          .then(function () { return generateAsync(tempPath, data.fileName, data.shape, data.ext) })
+          .then(function () { return optimizeImages(data.uuid) })
+          .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
+          .then(function () { return cleanDirectory(tempPath) })
+          .then(function () { return zipDirectory(`./min/${data.uuid}`) })
+          .then(function () { done(); resolve() })
+          .catch((err) => {
+            reject(err)
+          })
+      } else if (data.async !== 'on' && data.ext !== '.svg') {
+        resizeImages(data.uuid, data.fileName, sizeOptions, data.ext)
+          .then(function () { return optimizeImages(data.uuid) })
+          .then(function () { return cleanDirectory(tempPath) })
+          .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
+          .then(function () { return zipDirectory(`./min/${data.uuid}`) })
+          .then(function () { done(); resolve() })
+          .catch((err) => {
+            reject(err)
+          })
+      } else if (data.ext === '.svg') {
+        optimizeImages(data.uuid)
+          .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
+          .then(function () { return cleanDirectory(tempPath) })
+          .then(function () { return zipDirectory(`./min/${data.uuid}`) })
+          .then(function () { done(); resolve() })
+          .catch((err) => {
+            reject(err)
+          })
+      }
+    })
+  })
 }
 
 module.exports.resizeImages = resizeImages
@@ -386,3 +464,4 @@ module.exports.deleteOld = deleteOld
 module.exports.generateAsync = generateAsync
 module.exports.collectFiles = collectFiles
 module.exports.validateFile = validateFile
+module.exports.processImage = processImage

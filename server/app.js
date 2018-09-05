@@ -16,6 +16,15 @@ const vueOptions = {
   }
 }
 const expressVueMiddleware = expressVue.init(vueOptions)
+const kue = require('kue')
+const queue = kue.createQueue()
+
+queue.process('process', function (job, done) {
+  methods.processImage(job.data, done)
+        .catch((err) => {
+          methods.handleError(err)
+        })
+})
 
 let app = express()
 
@@ -26,6 +35,11 @@ app.use(express.urlencoded({ extended: false }))
 app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
+
+process.on('unhandledRejection', (reason, p) => {
+  console.log('Unhandled Rejection at: Promise', p, 'reason:', reason)
+  // application specific logging, throwing an error, or other logic here
+})
 
 cron.schedule('0 */12 * * *', () => {
   let files = fs.readdirSync('./min').filter(junk.not)
@@ -104,9 +118,7 @@ app.get('/download/:filename', async (req, res) => {
 
 app.get('/download/:filename/zip', (req, res) => {
   let fn = req.params.filename
-  methods.zipDirectory(`./min/${fn}`).then(() => {
-    res.download(`./min/${fn}.zip`)
-  })
+  res.download(`./min/${fn}.zip`)
 })
 
 app.get('/download/async.js', (req, res) => {
@@ -114,92 +126,37 @@ app.get('/download/async.js', (req, res) => {
 })
 
 app.post('/upload', (req, res) => {
-  // validate name the user used and use that as the filename
   let fileName = req.body.outPutName
                  ? validator.blacklist(req.body.outPutName, './')
                  : req.files.inputImage.name.split('.')[0]
-  // get extension
   let ext = path.extname(req.files.inputImage.name)
-  // blank array
-  let sizes = []
-  // empty object
-  let options = {}
-  // generate random ID
   let id = randomstring.generate(12)
-  // temp directory to hold files until optimization
-  let tempPath = path.join('./uploads/temp/', id)
+  let imageData = req.files.inputImage.data
 
-  if (!req.body.sizes) {
-    sizes = [null]
-  } else if (typeof req.body.sizes === 'string') {
-    sizes.push(req.body.sizes)
-    options[sizes[0]] = true
-  } else {
-    sizes = req.body.sizes
-
-    for (let i = 0; i < sizes.length; i++) {
-      options[sizes[i]] = true
-    }
-  }
-
-  // make temp directory
-  fs.mkdirSync(tempPath)
-  // make optimized output directory
+  fs.mkdirSync(`./uploads/temp/${id}`)
   fs.mkdirSync(`./min/${id}`)
 
   // copy uploaded file to temp directory
-  fs.writeFileSync(`${tempPath}/${fileName}-original${ext}`, req.files.inputImage.data, (err) => {
+  fs.writeFileSync(`./uploads/temp/${id}/${fileName}-original${ext}`, imageData, (err) => {
     if (err) return methods.handleError(err)
   })
 
-  // read the file and then work the juju
-  fs.stat(`${tempPath}/${fileName}-original${ext}`, (err, stats) => {
+  let job = queue.create('process', {
+    uuid: id,
+    fileName: fileName,
+    ext: ext,
+    sizes: req.body.sizes,
+    imageData: req.files.inputImage.data,
+    async: req.body.async,
+    shape: req.body.asyncShape
+  })
+
+  job.on('complete', () => {
+    res.redirect(`/download/${id}`)
+  }).on('failed', () => {
+    res.renderVue('404.vue')
+  }).save((err) => {
     if (err) methods.handleError(err)
-
-    let valid = methods.validateFile(ext, stats.size)
-
-    // if image is bigger than 20mb or invalid extension, reject and let 'em know why
-    if (!valid.valid) {
-      let errorData = {
-        message: valid.errorMessage,
-        statusCode: valid.statusCode
-      }
-
-      return res.status(500).renderVue('404.vue', errorData)
-    } else {
-      if (req.body.async === 'on' && ext !== '.svg') {
-        options['async'] = true
-        methods.resizeImages(id, fileName, sizes, ext)
-          .then(function () { return methods.generateAsync(tempPath, fileName, req.body.asyncShape, ext) })
-          .then(function () { return methods.optimizeImages(id) })
-          .then(function () { return methods.printCode(fileName, ext, options, id) })
-          .then(function () { return methods.cleanDirectory(tempPath) })
-          .then(function () { return methods.zipDirectory(`./min/${id}`) })
-          .then(function () { return res.redirect(`/download/${id}`) })
-          .catch((err) => {
-            res.status(err.statusCode).renderVue('404.vue', err)
-          })
-      } else if (req.body.async !== 'on' && ext !== '.svg') {
-        methods.resizeImages(id, fileName, sizes, ext)
-          .then(function () { return methods.optimizeImages(id) })
-          .then(function () { return methods.cleanDirectory(tempPath) })
-          .then(function () { return methods.printCode(fileName, ext, options, id) })
-          .then(function () { return methods.zipDirectory(`./min/${id}`) })
-          .then(function () { return res.redirect(`/download/${id}`) })
-          .catch((err) => {
-            res.status(err.statusCode).renderVue('404.vue', err)
-          })
-      } else if (ext === '.svg') {
-        methods.optimizeImages(id)
-          .then(function () { return methods.printCode(fileName, ext, options, id) })
-          .then(function () { return methods.cleanDirectory(tempPath) })
-          .then(function () { return methods.zipDirectory(`./min/${id}`) })
-          .then(res.redirect(`/download/${id}`))
-          .catch((err) => {
-            res.status(err.statusCode).renderVue('404.vue', err)
-          })
-      }
-    }
   })
 })
 
