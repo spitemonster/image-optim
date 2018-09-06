@@ -123,7 +123,6 @@ function validateFile (ext, size) {
 }
 
 function generateAsync (directory, filename, option, ext) {
-  console.log('generating async')
   let fn = `${filename}-original${ext}`
   let output = `${directory}/${filename}-async${ext}`
 
@@ -131,7 +130,6 @@ function generateAsync (directory, filename, option, ext) {
     Jimp.read(`${directory}/${fn}`, (err, img) => {
       if (err) {
         handleError(err)
-        console.log(err)
         throw Error(err)
       }
 
@@ -151,7 +149,6 @@ function generateAsync (directory, filename, option, ext) {
 
 // resize images that are uploaded
 function resizeImages (id, filename, sizes, ext) {
-  console.log('resizing')
   let sizeOptions = {
     'xsmall': 320,
     'small': 480,
@@ -159,7 +156,6 @@ function resizeImages (id, filename, sizes, ext) {
     'large': 1280,
     'retina': 2560
   }
-  console.log(sizes)
   let directory = `./uploads/temp/${id}`
 
   return new Promise((resolve, reject) => {
@@ -193,7 +189,6 @@ function resizeImages (id, filename, sizes, ext) {
 
 // optimizing images in the temp directory
 function optimizeImages (id) {
-  console.log('optimizing')
   return new Promise((resolve, reject) => {
     imagemin([`./uploads/temp/${id}/` + '*.{jpg,png,jpeg,svg,gif}'], `./min/${id}/`, {
       plugins: [
@@ -265,7 +260,6 @@ function collectFiles (dir) {
 
 // give it a directory and it removes all files from it. this is specifically for removing all files from the temp directory without actually removing the temp directory. as with everything else, written as a promise so things can be chained and run in sequence instead of simultaneously
 function cleanDirectory (directory) {
-  console.log(`Cleaning ${directory}`)
   return new Promise((resolve, reject) => {
     rimraf(directory, (err) => {
       if (err) { return handleError(err) }
@@ -276,7 +270,6 @@ function cleanDirectory (directory) {
 
 // zip a directory
 function zipDirectory (directory) {
-  console.log('zipping')
   return new Promise((resolve, reject) => {
     zipFolder(directory, `${directory}.zip`, (err) => {
       if (err) { return handleError(err) } else { resolve('done') }
@@ -423,7 +416,6 @@ function processImage (data, done) {
       }
     }
 
-    console.log(data.shape)
     // read the file and then work the juju
     fs.stat(`${tempPath}/${data.fileName}-original${data.ext}`, (err, stats) => {
       if (err) handleError(err)

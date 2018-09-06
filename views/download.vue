@@ -123,7 +123,6 @@ export default {
     },
     checkExists() {
       let check = setInterval(() => {
-        console.log('checking')
         axios.get(`/test/${this.id}`)
           .then((response) => {
             if (response.status === 200) {
@@ -200,7 +199,7 @@ export default {
         }
       })
       .catch(function(err) {
-        console.log(`HERE'S THE ERROR: `, err)
+        return;
       })
   }
 }

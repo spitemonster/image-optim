@@ -22,7 +22,6 @@ const cluster = require('cluster')
 const clusterWorkerSize = require('os').cpus().length
 
 cluster.on('exit', function (worker) {
-  console.log('Worker %d died :(', worker.id)
   cluster.fork()
 })
 
@@ -35,10 +34,6 @@ app.use(express.urlencoded({ extended: false }))
 app.use('/assets', express.static('public/assets'))
 app.use('/min', express.static('./min'))
 app.use(fileUpload())
-
-process.on('unhandledRejection', (reason, p) => {
-  console.log('Unhandled Rejection at: Promise', p, 'reason:', reason)
-})
 
 app.get('/', (req, res) => {
   res.renderVue('home.vue')
@@ -134,7 +129,6 @@ app.get('/404', (req, res) => {
 if (cluster.isMaster) {
   app.listen('8888')
   cron.schedule('0 */12 * * *', () => {
-    console.log('cron running')
     methods.deleteOld(`./min`)
   })
 
