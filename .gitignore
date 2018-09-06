@@ -2,3 +2,4 @@
 /min
 /uploads/temp/*
 /node_modules
+*.rdb

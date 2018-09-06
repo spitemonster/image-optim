@@ -10,6 +10,7 @@ const zipFolder = require('zip-folder')
 const triangulate = require('triangulate-image')
 const rimraf = require('rimraf')
 const sizeOf = require('image-size')
+const junk = require('junk')
 
 // BEGIN UTILITY FUNCTIONS
 // none of these functions are exported
@@ -260,7 +261,7 @@ function collectFiles (dir) {
 
 // give it a directory and it removes all files from it. this is specifically for removing all files from the temp directory without actually removing the temp directory. as with everything else, written as a promise so things can be chained and run in sequence instead of simultaneously
 function cleanDirectory (directory) {
-  console.log('cleaning')
+  console.log(`Cleaning ${directory}`)
   return new Promise((resolve, reject) => {
     rimraf(directory, (err) => {
       if (err) { return handleError(err) }
@@ -363,21 +364,40 @@ function handleError (err) {
 }
 
 // deletes any files and directories older than 3 days that are inside the min directory
-function deleteOld (files) {
+function deleteOld (dir) {
+  let files = fs.readdirSync(dir).filter(junk.not)
+  let date = Date(Date.now()).toString()
+  let message = ''
+  let fileNames = ''
+  let fileNum = 0
+
   if (files.length < 1) {
-    return
-  }
+    message += '\r\n<------------------------------>'
+    message += '\r\nDelete old Cron running, no files to delete'
+    return writeCronLog(message)
+  } else {
+    message += `\r\n<------------------------------>`
+    message += `\r\nDelete old Cron running, checking ${files.length} files`
+    message += `\r\n${date}`
 
-  for (let i = 0; i < files.length; i++) {
-    let mTime = fs.statSync(`./min/${files[i]}`).birthtimeMs
-    let now = Date.now()
+    for (let i = 0; i < files.length; i++) {
+      let mTime = fs.statSync(`./min/${files[i]}`).birthtimeMs
+      let now = Date.now()
 
-    if ((now - mTime) >= 259200000 && files[i] !== '.DS_Store') {
-      rimraf(`./min/${files[i]}`, () => {
+      if ((now - mTime) >= 259200000 && files[i] !== '.DS_Store') {
+        fileNum = fileNum + 1
+        fileNames += `\r\n\tDeleting ${files[i]}`
+        rimraf(`./min/${files[i]}`, () => {
 
-      })
+        })
+      }
     }
+
+    message += `\r\nDeleting ${fileNum} file(s)`
+    message += `${fileNames}`
   }
+
+  writeCronLog(message)
 }
 
 function processImage (data, done) {
@@ -452,6 +472,30 @@ function processImage (data, done) {
       }
     })
   })
+}
+
+function writeCronLog (message) {
+  if (!fs.existsSync(`./server/logs/cron.log`)) {
+    fs.writeFile(`./server/logs/cron.log`, message, (err) => {
+      if (err) { handleError(err); return console.log('Error writing to error log') }
+    })
+  } else {
+    fs.stat(`./server/logs/cron.log`, (err, stats) => {
+      if (err) {
+        if (err) { handleError(err); return console.log('Error writing to error log') }
+      }
+
+      if (stats.size > 100000) {
+        fs.writeFile(`./server/logs/cron.log`, message, (err) => {
+          if (err) { handleError(err); return console.log('Error writing to error log') }
+        })
+      } else {
+        fs.appendFile('./server/logs/cron.log', message, (err) => {
+          if (err) { handleError(err); return console.log('Error writing to error log') }
+        })
+      }
+    })
+  }
 }
 
 module.exports.resizeImages = resizeImages

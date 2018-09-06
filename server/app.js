@@ -6,7 +6,6 @@ const expressVue = require('express-vue')
 const methods = require('./methods.js')
 const cron = require('node-cron')
 const path = require('path')
-const junk = require('junk')
 const randomstring = require('randomstring')
 const validator = require('validator')
 const vueOptions = {
@@ -28,13 +27,6 @@ cluster.on('exit', function (worker) {
   cluster.fork()
 })
 
-queue.process('process', 2, function (job, done) {
-  methods.processImage(job.data, done)
-        .catch((err) => {
-          methods.handleError(err)
-        })
-})
-
 let app = express()
 
 app.use(express.urlencoded({ extended: false }))
@@ -48,48 +40,6 @@ app.use(fileUpload())
 process.on('unhandledRejection', (reason, p) => {
   console.log('Unhandled Rejection at: Promise', p, 'reason:', reason)
   // application specific logging, throwing an error, or other logic here
-})
-
-cron.schedule('0 */12 * * *', () => {
-  let files = fs.readdirSync('./min').filter(junk.not)
-  let date = Date(Date.now()).toString()
-
-  let message = ''
-  message += '\r\n<------------------------------>\r\n'
-  message += date + '\r\n'
-
-  if (files.length > 0) {
-    message += `Delete old Cron running, deleting ${files.length} files`
-    for (let i = 0; i < files.length; i++) {
-      message += `\r\nDeleting ${files[i]}`
-    }
-  } else {
-    message += `Delete old Cron running, no files to delete`
-  }
-
-  if (!fs.existsSync(`./server/logs/cron.log`)) {
-    fs.writeFile(`./server/logs/cron.log`, message, (err) => {
-      if (err) { methods.handleError(err); return console.log('Error writing to error log') }
-    })
-  } else {
-    fs.stat(`./server/logs/cron.log`, (err, stats) => {
-      if (err) {
-        if (err) { methods.handleError(err); return console.log('Error writing to error log') }
-      }
-
-      if (stats.size > 100000) {
-        fs.writeFile(`./server/logs/cron.log`, message, (err) => {
-          if (err) { methods.handleError(err); return console.log('Error writing to error log') }
-        })
-      } else {
-        fs.appendFile('./server/logs/cron.log', message, (err) => {
-          if (err) { methods.handleError(err); return console.log('Error writing to error log') }
-        })
-      }
-    })
-  }
-
-  methods.deleteOld(files)
 })
 
 app.get('/', (req, res) => {
@@ -172,11 +122,20 @@ app.get('/404', (req, res) => {
 })
 
 if (cluster.isMaster) {
+  app.listen('8888')
+  cron.schedule('0 */12 * * *', () => {
+    console.log('cron running')
+    methods.deleteOld(`./min`)
+  })
+
   for (var i = 0; i < clusterWorkerSize; i += 1) {
     cluster.fork()
   }
 } else {
-  console.log('app running')
-  app.listen('8888', () => {
+  queue.process('process', 2, function (job, done) {
+    methods.processImage(job.data, done)
+          .catch((err) => {
+            methods.handleError(err)
+          })
   })
 }
