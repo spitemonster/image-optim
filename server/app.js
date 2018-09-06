@@ -11,7 +11,8 @@ const validator = require('validator')
 const vueOptions = {
   rootPath: 'views',
   head: {
-    styles: [{ style: '/assets/style/css/master.min.css' }]
+    styles: [{ style: '/assets/style/css/master.min.css' }],
+    scripts: [{ src: 'https://unpkg.com/axios/dist/axios.min.js' }]
   }
 }
 const expressVueMiddleware = expressVue.init(vueOptions)
@@ -21,8 +22,6 @@ const cluster = require('cluster')
 const clusterWorkerSize = require('os').cpus().length
 
 cluster.on('exit', function (worker) {
-    // Replace the dead worker,
-    // we're not sentimental
   console.log('Worker %d died :(', worker.id)
   cluster.fork()
 })
@@ -39,45 +38,52 @@ app.use(fileUpload())
 
 process.on('unhandledRejection', (reason, p) => {
   console.log('Unhandled Rejection at: Promise', p, 'reason:', reason)
-  // application specific logging, throwing an error, or other logic here
 })
 
 app.get('/', (req, res) => {
   res.renderVue('home.vue')
 })
 
-app.get('/download/:filename', async (req, res) => {
-  let dir = req.params.filename
-  let created = fs.statSync(`./min/${dir}.zip`).birthtimeMs
+app.get('/download/:id', async (req, res) => {
+  let id = req.params.id
+  let data = {
+    id: id
+  }
 
-  methods.collectFiles(dir)
-    .then(function (files) {
-      let data = {
-        files: files,
-        created: created
-      }
-      return res.renderVue('download.vue', data)
-    })
-    .catch((err) => {
-      let errorData = {
-        message: '',
-        statusCode: 404,
-        type: 'Failure'
-      }
+  if (!fs.existsSync(`./min/${id}`)) {
+    let errorData = {
+      statusCode: 404,
+      message: 'It looks like the file you uploaded has expired. Please upload your image and try again.'
+    }
 
-      if (err.syscall === 'scandir' && err.code === 'ENOENT') {
-        errorData.message = 'It appears this directory has expired, please upload your images again.'
-      } else {
-        errorData.message = 'There was an issue collecting your files. Please try again.'
-      }
+    return res.renderVue('404.vue', errorData)
+  }
 
-      res.status(errorData.statusCode).renderVue('404.vue', errorData)
-    })
+  res.renderVue('download.vue', data)
 })
 
-app.get('/download/:filename/zip', (req, res) => {
-  let fn = req.params.filename
-  res.download(`./min/${fn}.zip`)
+app.get('/download/:id/zip', (req, res) => {
+  let id = req.params.filename
+  res.download(`./min/${id}.zip`)
+})
+
+app.get('/test/:id', (req, res) => {
+  let id = req.params.id
+
+  if (fs.existsSync(`./min/${id}.zip`)) {
+    let created = fs.statSync(`./min/${id}.zip`).birthtimeMs
+
+    methods.collectFiles(id)
+      .then(function (files) {
+        let data = {
+          files: files,
+          created: created
+        }
+        res.status(200).send(data)
+      })
+  } else {
+    res.status(202).send(`Doesn't`)
+  }
 })
 
 app.get('/download/async.js', (req, res) => {
@@ -108,13 +114,17 @@ app.post('/upload', (req, res) => {
     shape: req.body.asyncShape
   })
 
-  job.on('complete', () => {
-    res.redirect(`/download/${id}`)
-  }).on('failed', () => {
-    res.renderVue('404.vue')
+  job.on('failed', () => {
+    let errorData = {
+      statusCode: 500,
+      message: 'There was an error processing your file. Please try again.'
+    }
+    res.renderVue('404.vue', errorData)
   }).save((err) => {
     if (err) methods.handleError(err)
   })
+
+  res.redirect(`/download/${id}`)
 })
 
 app.get('/404', (req, res) => {

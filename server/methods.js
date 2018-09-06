@@ -123,6 +123,7 @@ function validateFile (ext, size) {
 }
 
 function generateAsync (directory, filename, option, ext) {
+  console.log('generating async')
   let fn = `${filename}-original${ext}`
   let output = `${directory}/${filename}-async${ext}`
 
@@ -130,6 +131,7 @@ function generateAsync (directory, filename, option, ext) {
     Jimp.read(`${directory}/${fn}`, (err, img) => {
       if (err) {
         handleError(err)
+        console.log(err)
         throw Error(err)
       }
 
@@ -157,7 +159,7 @@ function resizeImages (id, filename, sizes, ext) {
     'large': 1280,
     'retina': 2560
   }
-
+  console.log(sizes)
   let directory = `./uploads/temp/${id}`
 
   return new Promise((resolve, reject) => {
@@ -171,6 +173,8 @@ function resizeImages (id, filename, sizes, ext) {
               resize(img, sizeOptions[size], output)
             }
           })
+          resolve(id)
+        } else {
           resolve(id)
         }
       }).catch((err) => {
@@ -374,7 +378,7 @@ function deleteOld (dir) {
   if (files.length < 1) {
     message += '\r\n<------------------------------>'
     message += '\r\nDelete old Cron running, no files to delete'
-    return writeCronLog(message)
+    return
   } else {
     message += `\r\n<------------------------------>`
     message += `\r\nDelete old Cron running, checking ${files.length} files`
@@ -419,10 +423,7 @@ function processImage (data, done) {
       }
     }
 
-    // make temp directory
-
-    // make optimized output directory
-
+    console.log(data.shape)
     // read the file and then work the juju
     fs.stat(`${tempPath}/${data.fileName}-original${data.ext}`, (err, stats) => {
       if (err) handleError(err)

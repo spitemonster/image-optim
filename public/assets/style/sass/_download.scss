@@ -97,12 +97,12 @@ code {
   margin: 5rem auto 0;
 
   a {
-    color: $white;
+    color: $black;
     margin: 12px;
     text-decoration: none;
     transition: $transition;
     &:hover {
-      color: $white;
+      color: $black;
     }
   }
 }

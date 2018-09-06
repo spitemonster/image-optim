@@ -1,8 +1,44 @@
 <template lang="html">
   <div class="body--wrapper">
-    <img id="original" :src="files.files.original.url">
-    <div class="output--wrapper">
-      <h1>{{ files.filename }}</h1>
+    <div id="wait">
+      <div class="dank-ass-loader">
+        <div class="row">
+           <div class="arrow up outer outer-18"></div>
+           <div class="arrow down outer outer-17"></div>
+           <div class="arrow up outer outer-16"></div>
+           <div class="arrow down outer outer-15"></div>
+           <div class="arrow up outer outer-14"></div>
+        </div>
+        <div class="row">
+           <div class="arrow up outer outer-1"></div>
+           <div class="arrow down outer outer-2"></div>
+           <div class="arrow up inner inner-6"></div>
+           <div class="arrow down inner inner-5"></div>
+           <div class="arrow up inner inner-4"></div>
+           <div class="arrow down outer outer-13"></div>
+           <div class="arrow up outer outer-12"></div>
+        </div>
+        <div class="row">
+           <div class="arrow down outer outer-3"></div>
+           <div class="arrow up outer outer-4"></div>
+           <div class="arrow down inner inner-1"></div>
+           <div class="arrow up inner inner-2"></div>
+           <div class="arrow down inner inner-3"></div>
+           <div class="arrow up outer outer-11"></div>
+           <div class="arrow down outer outer-10"></div>
+        </div>
+        <div class="row">
+           <div class="arrow down outer outer-5"></div>
+           <div class="arrow up outer outer-6"></div>
+           <div class="arrow down outer outer-7"></div>
+           <div class="arrow up outer outer-8"></div>
+           <div class="arrow down outer outer-9"></div>
+        </div>
+      </div>
+    </div>
+    <img id="original">
+    <div class="output--wrapper" v-if="loaded">
+      <h1 id="filename"></h1>
       <div id="img--wrapper" data-width="800" style="height: 500px;">
         <div class="img" v-if="files.files.async">
           <a :href="files.files.async.url"><img class="int--img" :src="files.files.async.url" /></a>
@@ -33,20 +69,20 @@
           <h3>Original / <span class="original--size"></span> / {{ files.files.original.fileSize }}</h3>
         </div>
       </div>
-  <pre v-if="files.code" class="code--example"><code>
-  {{ files.code }}
-  </code></pre>
-  <div class="exp">
-    <p>This file will expire in {{ exp }}</p>
-  </div>
-  <div class="async--info">
-    <p>Example code is intended for use with the asynchronous image loading script available <a href="https://github.com/spitemonster/utilities">here</a></p>
-  </div>
-      <div class="links">
-          <a :href="zipUrl" class="link--button">Download Zip</a>
-          <a href="https://github.com/spitemonster/image-optim" class="link--button">Report Bug / Request Feature</a>
-          <a href="/" class="link--button">Return</a>
+      <pre v-if="files.code" class="code--example"><code>
+      {{ files.code }}
+      </code></pre>
+      <div class="exp">
+        <p>This file will expire in {{ exp }}</p>
       </div>
+      <div class="async--info">
+        <p>Example code is intended for use with the asynchronous image loading script available <a href="https://github.com/spitemonster/utilities">here</a></p>
+      </div>
+          <div class="links">
+              <a :href="zipUrl" class="link--button">Download Zip</a>
+              <a href="https://github.com/spitemonster/image-optim" class="link--button">Report Bug / Request Feature</a>
+              <a href="/" class="link--button">Return</a>
+          </div>
     </div>
   </div>
 </template>
@@ -56,7 +92,8 @@
 export default {
   data() {
     return {
-      exp: "00:00:00"
+      exp: "00:00:00",
+      loaded: false
     }
   },
   methods: {
@@ -83,6 +120,60 @@ export default {
       }
 
       this.exp = hours + ':' + minutes + ':' + seconds
+    },
+    checkExists() {
+      let check = setInterval(() => {
+        console.log('checking')
+        axios.get(`/test/${this.id}`)
+          .then((response) => {
+            if (response.status === 200) {
+              let preload = document.getElementById('original');
+              this.files = response.data.files
+              this.created = response.data.created
+              this.loaded = true;
+              preload.setAttribute('src', this.files.files.original.url)
+              preload.addEventListener('load', () => {
+                this.load();
+              })
+            }
+          })
+          .catch((err) => {
+            return err
+          })
+      }, 5000)
+    },
+    load() {
+      this.msToTime()
+
+      let f = this.files
+      let filename = document.getElementById('filename')
+      let imgWrap = document.getElementById('img--wrapper');
+      let images = document.getElementsByClassName('img');
+      let intImg = document.getElementsByClassName('int--img');
+      let width = imgWrap.dataset.width;
+      let original = document.getElementById('original');
+      let originalHeight = original.naturalHeight;
+      let originalWidth = original.naturalWidth;
+      let ratio = width / originalWidth;
+      let cellWidth = Math.ceil(width / images.length);
+      let originalSize = document.getElementsByClassName('original--size')[0];
+
+      filename.innerText = f.filename
+
+      originalSize.innerText = originalWidth + 'px'
+      imgWrap.style.height = originalHeight * ratio + 'px';
+      imgWrap.style.width = width + 'px';
+      for (let i = 0; i < images.length; i++) {
+        images[i].style.width = cellWidth + 'px';
+        images[i].style.height = originalHeight * ratio + 'px';
+        images[i].style.left = cellWidth * i + 'px';
+        intImg[i].style.left = '-' + cellWidth * i + 'px';
+        intImg[i].style.width = width + 'px';
+      }
+      setInterval(() => {
+        this.msToTime()
+      }, 1000)
+      wait.style.display = 'none'
     }
   },
   computed: {
@@ -91,41 +182,26 @@ export default {
     }
   },
   mounted() {
-    this.msToTime()
+    let wait = document.getElementById('wait');
 
-    let images = document.getElementsByClassName('img');
-    let intImg = document.getElementsByClassName('int--img');
-    let imgWrapper = document.getElementById('img--wrapper');
-    let width = imgWrapper.dataset.width;
-    let cellWidth = Math.ceil(width / images.length);
-    let original = document.getElementById('original')
-    let originalHeight;
-    let originalWidth;
-    let ratio;
-    let originalSize = document.getElementsByClassName('original--size')[0];
-
-    original.addEventListener('load', () => {
-      console.log('load')
-      ratio = width / original.naturalWidth;
-      originalHeight = original.naturalHeight ? original.naturalHeight : 500;
-      originalWidth = original.naturalWidth;
-      originalSize.innerText = originalWidth + 'px'
-
-      imgWrapper.style.height = originalHeight * ratio + 'px';
-      imgWrapper.style.width = width + 'px';
-
-      for (let i = 0; i < images.length; i++) {
-        images[i].style.width = cellWidth + 'px';
-        images[i].style.height = originalHeight * ratio + 'px';
-        images[i].style.left = cellWidth * i + 'px';
-        intImg[i].style.left = '-' + cellWidth * i + 'px';
-        intImg[i].style.width = width + 'px';
-      }
-    })
-
-    setInterval(() => {
-      this.msToTime()
-    }, 1000)
+    axios.get(`/test/${this.id}`)
+      .then((response) => {
+        if (response.status !== 200) {
+          this.checkExists();
+        } else {
+          let preload = document.getElementById('original');
+          this.files = response.data.files
+          this.created = response.data.created
+          this.loaded = true;
+          preload.setAttribute('src', this.files.files.original.url)
+          preload.addEventListener('load', () => {
+            this.load();
+          })
+        }
+      })
+      .catch(function(err) {
+        console.log(`HERE'S THE ERROR: `, err)
+      })
   }
 }
 
@@ -134,5 +210,9 @@ export default {
 <style lang="css">
 #original {
   display: none;
+}
+
+#wait {
+  display: flex;
 }
 </style>
