@@ -55,9 +55,9 @@
 <script>
 import wait from './wait.vue'
 export default {
-  data() {
+  data () {
     return {
-      exp: "00:00:00",
+      exp: '00:00:00',
       loaded: false
     }
   },
@@ -65,18 +65,14 @@ export default {
     wait
   },
   methods: {
-    msToTime() {
+    msToTime () {
       let exp = this.created + 259200000
       let now = Date.now()
       let ms = exp - now
-        // 1- Convert to seconds:
       var seconds = ms / 1000
-        // 2- Extract hours:
-      var hours = parseInt(seconds / 3600) // 3,600 seconds in 1 hour
-      seconds = seconds % 3600 // seconds remaining after extracting hours
-        // 3- Extract minutes:
-      var minutes = parseInt(seconds / 60) // 60 seconds in 1 minute
-        // 4- Keep only seconds not extracted to minutes:
+      var hours = parseInt(seconds / 3600)
+      seconds = seconds % 3600
+      var minutes = parseInt(seconds / 60)
       seconds = Math.floor(seconds % 60)
 
       if (minutes < 10) {
@@ -89,18 +85,21 @@ export default {
 
       this.exp = hours + ':' + minutes + ':' + seconds
     },
-    checkExists() {
+    checkExists () {
       let check = setInterval(() => {
+        /* eslint-disable */
         axios.get(`/test/${this.id}`)
+        /* eslint-enable */
           .then((response) => {
             if (response.status === 200) {
-              let preload = document.getElementById('original');
+              clearInterval(check)
+              let preload = document.querySelector('#original')
               this.files = response.data.files
               this.created = response.data.created
-              this.loaded = true;
+              this.loaded = true
               preload.setAttribute('src', this.files.files.original.url)
               preload.addEventListener('load', () => {
-                this.load();
+                this.load()
               })
             }
           })
@@ -109,34 +108,34 @@ export default {
           })
       }, 5000)
     },
-    load() {
+    load () {
       this.msToTime()
 
       let f = this.files
-      let loader = document.getElementById('wait')
-      let filename = document.getElementById('filename')
-      let imgWrap = document.getElementById('img--wrapper');
-      let images = document.getElementsByClassName('img');
-      let intImg = document.getElementsByClassName('int--img');
-      let width = imgWrap.dataset.width;
-      let original = document.getElementById('original');
-      let originalHeight = original.naturalHeight;
-      let originalWidth = original.naturalWidth;
-      let ratio = width / originalWidth;
-      let cellWidth = Math.ceil(width / images.length);
-      let originalSize = document.getElementsByClassName('original--size')[0];
+      let loader = document.querySelector('#wait')
+      let filename = document.querySelector('#filename')
+      let imgWrap = document.querySelector('#img--wrapper')
+      let images = document.querySelectorAll('.img')
+      let intImg = document.querySelectorAll('.int--img')
+      let width = imgWrap.dataset.width
+      let original = document.querySelector('#original')
+      let originalHeight = original.naturalHeight
+      let originalWidth = original.naturalWidth
+      let ratio = width / originalWidth
+      let cellWidth = Math.ceil(width / images.length)
+      let originalSize = document.querySelector('.original--size')
 
       filename.innerText = f.filename
 
       originalSize.innerText = originalWidth + 'px'
-      imgWrap.style.height = originalHeight * ratio + 'px';
-      imgWrap.style.width = width + 'px';
+      imgWrap.style.height = originalHeight * ratio + 'px'
+      imgWrap.style.width = width + 'px'
       for (let i = 0; i < images.length; i++) {
-        images[i].style.width = cellWidth + 'px';
-        images[i].style.height = originalHeight * ratio + 'px';
-        images[i].style.left = cellWidth * i + 'px';
-        intImg[i].style.left = '-' + cellWidth * i + 'px';
-        intImg[i].style.width = width + 'px';
+        images[i].style.width = cellWidth + 'px'
+        images[i].style.height = originalHeight * ratio + 'px'
+        images[i].style.left = cellWidth * i + 'px'
+        intImg[i].style.left = '-' + cellWidth * i + 'px'
+        intImg[i].style.width = width + 'px'
       }
       setInterval(() => {
         this.msToTime()
@@ -145,34 +144,30 @@ export default {
     }
   },
   computed: {
-    formatCode() {
-        return this.code.split('\r\n').join('<br />').toString()
+    formatCode () {
+      return this.code.split('\r\n').join('<br />').toString()
     }
   },
-  mounted() {
-    let loader = document.getElementById('wait');
-
+  mounted () {
+    /* eslint-disable */
     axios.get(`/test/${this.id}`)
+    /* eslint-enable */
       .then((response) => {
         if (response.status !== 200) {
-          this.checkExists();
+          this.checkExists()
         } else {
-          let preload = document.getElementById('original');
+          let preload = document.querySelector('#original')
           this.files = response.data.files
           this.created = response.data.created
-          this.loaded = true;
+          this.loaded = true
           preload.setAttribute('src', this.files.files.original.url)
           preload.addEventListener('load', () => {
-            this.load();
+            this.load()
           })
         }
       })
-      .catch(function(err) {
-        return;
-      })
   }
 }
-
 </script>
 
 <style lang="css">

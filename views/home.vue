@@ -123,7 +123,7 @@
 <script>
 import wait from './wait.vue'
 export default {
-  data() {
+  data () {
     return {
       asyncSelected: false,
       advanced: false,
@@ -136,44 +136,40 @@ export default {
   components: {
     wait
   },
-  mounted() {
-    let toggleAll = document.getElementById('toggleAll');
-    let toggleAllLabel = document.getElementById('toggleAllLabel');
-    let sizeOptions = document.getElementsByClassName('size--option');
-    let asyncToggle = document.getElementById('async');
-    let asyncToggles = document.getElementsByClassName('async--option');
-    let asyncOptions = document.getElementsByClassName('asyncOption');
-    let sizeToggles = document.getElementsByClassName('sizeToggle');
-    let fileInput = document.getElementById('image');
-    let asyncLabel = document.getElementById('async--label');
-    let image = document.getElementById('image');
-    let plus = document.getElementsByClassName('plus')[0];
-    let advanced = document.getElementsByClassName('advanced')[0];
-    let submit = document.getElementById('submit');
-    let outputName = document.getElementById('output-name')
+  mounted () {
+    let toggleAll = document.querySelector('#toggleAll')
+    let toggleAllLabel = document.querySelector('#toggleAllLabel')
+    let sizeOptions = document.querySelectorAll('.size--option')
+    let asyncToggle = document.querySelector('#async')
+    let asyncToggles = document.querySelectorAll('.async--option')
+    let asyncOptions = document.querySelectorAll('.asyncOption')
+    let sizeToggles = document.querySelectorAll('.sizeToggle')
+    let fileInput = document.querySelector('#image')
+    let image = document.querySelector('#image')
+    let submit = document.querySelector('#submit')
 
     // toggle all size options on or off
     toggleAll.addEventListener('change', () => {
       if (toggleAll.checked) {
         for (let i = 0; i < sizeToggles.length; i++) {
           setTimeout(() => {
-            sizeToggles[i].checked = true;
+            sizeToggles[i].checked = true
           }, 100 * i)
         }
       } else {
         for (let i = sizeToggles.length - 1, j = 0; i >= 0; i--, j++) {
           setTimeout(() => {
-            sizeToggles[i].checked = false;
+            sizeToggles[i].checked = false
           }, 100 * j)
         }
       }
-    });
+    })
 
     // out from right animation on sizes when hovering toggle all
     toggleAllLabel.addEventListener('mouseenter', () => {
       for (let i = sizeOptions.length - 1, j = 0; i >= 0; i--, j++) {
         setTimeout(() => {
-          sizeOptions[i].classList.add('hover');
+          sizeOptions[i].classList.add('hover')
         }, 50 * j)
       }
     })
@@ -182,18 +178,18 @@ export default {
     toggleAllLabel.addEventListener('mouseleave', () => {
       for (let i = 0; i < sizeOptions.length; i++) {
         setTimeout(() => {
-          sizeOptions[i].classList.remove('hover');
+          sizeOptions[i].classList.remove('hover')
         }, 50 * i)
       }
     })
 
     // reads file name and replaces inner text of input label with filename
     fileInput.addEventListener('change', () => {
-      let fileArray = fileInput.value.split('\\');
-      let file = fileArray[fileArray.length - 1];
-      let fileName = document.getElementById('fileName')
+      let fileArray = fileInput.value.split('\\')
+      let file = fileArray[fileArray.length - 1]
+      let fileName = document.querySelector('#fileName')
 
-      fileName.innerText = file;
+      fileName.innerText = file
     })
 
     // animation for async
@@ -205,7 +201,7 @@ export default {
           }, 100 * j)
         }
       } else {
-        for (let i = 0; i < asyncToggles.length; i ++) {
+        for (let i = 0; i < asyncToggles.length; i++) {
           setTimeout(() => {
             asyncToggles[i].classList.add('show')
           }, 100 * i)
@@ -215,60 +211,60 @@ export default {
 
     // front end image validation. if not jp(e)g, png, svg or gif, reject it. if bigger than 20mb, reject it.
     image.addEventListener('change', () => {
-      let ext = image.value.split('.')[image.value.split('.').length - 1];
-      let file = image.files[0];
+      let ext = image.value.split('.')[image.value.split('.').length - 1]
+      let file = image.files[0]
 
-      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png' && ext != 'svg' && ext != 'gif') {
-        image.value = '';
-        this.fileError = true;
-        this.fileSelected = false;
+      if ((ext !== 'jpg' && ext !== 'jpeg' && ext !== 'png') && (ext !== 'svg' && ext !== 'gif')) {
+        image.value = ''
+        this.fileError = true
+        this.fileSelected = false
       }
 
-      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png' && ext == 'svg' || ext == 'gif') {
-        this.inputError = true;
-        this.fileSelected = false;
-        this.advanced = false;
-        toggleAll.checked = false;
+      if ((ext !== 'jpg' && ext !== 'jpeg' && ext !== 'png') && (ext === 'svg' || ext === 'gif')) {
+        this.inputError = true
+        this.fileSelected = false
+        this.advanced = false
+        toggleAll.checked = false
 
         for (let i = 0; i < sizeToggles.length; i++) {
-          sizeToggles[i].checked = false;
+          sizeToggles[i].checked = false
         }
 
         for (let i = 0; i < asyncOptions.length; i++) {
-          asyncOptions[i].checked = false;
+          asyncOptions[i].checked = false
         }
 
-        submit.removeAttribute('disabled');
+        submit.removeAttribute('disabled')
       }
 
-      if (this.inputError && ext == 'svg') {
-        this.svgError = true;
+      if (this.inputError && ext === 'svg') {
+        this.svgError = true
       }
 
-      if (ext == 'jpg' || ext == 'jpeg' || ext == 'png') {
-        this.fileSelected = true;
-        this.inputError = false;
-        this.svgError = false;
-        submit.removeAttribute('disabled');
+      if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') {
+        this.fileSelected = true
+        this.inputError = false
+        this.svgError = false
+        submit.removeAttribute('disabled')
       }
 
       if (file.size > 20000000) {
-        image.value = '';
-        this.fileError = true;
-        this.fileSelected = false;
-        submit.setAttribute('disabled', true);
+        image.value = ''
+        this.fileError = true
+        this.fileSelected = false
+        submit.setAttribute('disabled', true)
       }
     })
   },
   methods: {
     // turns on wait animation
-    wait() {
-      let form = document.getElementsByClassName('form--wrapper')[0]
-      let logo = document.getElementsByClassName('logo')[0]
-      let loader = document.getElementById('wait');
-      form.style.display = 'none';
-      loader.style.display = 'flex';
-      logo.style.display = 'none';
+    wait () {
+      let form = document.querySelector('.form--wrapper')
+      let logo = document.querySelector('.logo')
+      let loader = document.querySelector('#wait')
+      form.style.display = 'none'
+      loader.style.display = 'flex'
+      logo.style.display = 'none'
     }
   }
 }

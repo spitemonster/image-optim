@@ -124,6 +124,7 @@ function validateFile (ext, size) {
 }
 
 function generateAsync (directory, filename, option, ext) {
+  log('Generating async image')
   let fn = `${filename}-original${ext}`
   let output = `${directory}/${filename}-async${ext}`
 
@@ -150,6 +151,8 @@ function generateAsync (directory, filename, option, ext) {
 
 // resize images that are uploaded
 function resizeImages (id, filename, sizes, ext) {
+  log('Resizing images')
+
   let sizeOptions = {
     'xsmall': 320,
     'small': 480,
@@ -190,6 +193,7 @@ function resizeImages (id, filename, sizes, ext) {
 
 // optimizing images in the temp directory
 function optimizeImages (id) {
+  log('Optimizing Images')
   return new Promise((resolve, reject) => {
     imagemin([`./uploads/temp/${id}/` + '*.{jpg,png,jpeg,svg,gif}'], `./min/${id}/`, {
       plugins: [
@@ -216,6 +220,7 @@ function optimizeImages (id) {
 
 // reads given directory, gets all of the files from that directory and gets filesize, url, name, etc, and returns it to render function
 function collectFiles (dir) {
+  log('Collecting files')
   return new Promise((resolve, reject) => {
     let data = {
       filename: '',
@@ -261,6 +266,7 @@ function collectFiles (dir) {
 
 // give it a directory and it removes all files from it. this is specifically for removing all files from the temp directory without actually removing the temp directory. as with everything else, written as a promise so things can be chained and run in sequence instead of simultaneously
 function cleanDirectory (directory) {
+  log(`Cleaning directory: ${directory}`)
   return new Promise((resolve, reject) => {
     rimraf(directory, (err) => {
       if (err) { return handleError(err) }
@@ -271,6 +277,7 @@ function cleanDirectory (directory) {
 
 // zip a directory
 function zipDirectory (directory) {
+  log(`Zipping directory: ${directory}`)
   return new Promise((resolve, reject) => {
     zipFolder(directory, `${directory}.zip`, (err) => {
       if (err) { return handleError(err) } else { resolve('done') }
@@ -280,6 +287,7 @@ function zipDirectory (directory) {
 
 // pretty proud of this one. gets filename, prints out an html snippet with the appropriate markup to use with the async image loading script I wrote concurrently with this project. intentionally left the reject function out of this since it's not necessary. if this fails, user will still get their images.
 function printCode (filename, extension, sizes, id) {
+  log(`Printing Code`)
   return new Promise((resolve, reject) => {
     let ext = extension
     let fileSource
@@ -363,6 +371,7 @@ function handleError (err) {
 
 // deletes any files and directories older than 3 days that are inside the min directory
 function deleteOld (dir) {
+  log(`Deleting older files`)
   let files = fs.readdirSync(dir).filter(junk.not)
   let date = Date(Date.now()).toString()
   let message = ''
@@ -493,7 +502,9 @@ function writeCronLog (message) {
 }
 
 function log (message) {
-  if (process.env.NODE_ENV === 'development') {
+  let dev = process.env.NODE_ENV === 'development'
+  let verbose = process.env.VERBOSE
+  if (dev && verbose) {
     console.log(message)
   }
 }
