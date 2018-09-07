@@ -1,9 +1,10 @@
+require('dotenv').load()
 const imagemin = require('imagemin')
 const imageminPngquant = require('imagemin-pngquant')
 const imageminGifsicle = require('imagemin-gifsicle')
 const imageminSvgo = require('imagemin-svgo')
+const imageminJpegRecompress = require('imagemin-jpeg-recompress')
 const path = require('path')
-const imageminMozjpeg = require('imagemin-mozjpeg')
 const Jimp = require('jimp')
 const fs = require('fs')
 const zipFolder = require('zip-folder')
@@ -192,8 +193,8 @@ function optimizeImages (id) {
   return new Promise((resolve, reject) => {
     imagemin([`./uploads/temp/${id}/` + '*.{jpg,png,jpeg,svg,gif}'], `./min/${id}/`, {
       plugins: [
-        imageminMozjpeg({quality: 80}),
-        imageminPngquant({quality: '65-80'}),
+        imageminJpegRecompress({accurate: true, min: 55, max: 78}),
+        imageminPngquant({quality: '65'}),
         imageminGifsicle({interlaced: true, optimizationLevel: 3}),
         imageminSvgo()
       ]
@@ -491,6 +492,12 @@ function writeCronLog (message) {
   }
 }
 
+function log (message) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(message)
+  }
+}
+
 module.exports.resizeImages = resizeImages
 module.exports.optimizeImages = optimizeImages
 module.exports.cleanDirectory = cleanDirectory
@@ -502,3 +509,4 @@ module.exports.generateAsync = generateAsync
 module.exports.collectFiles = collectFiles
 module.exports.validateFile = validateFile
 module.exports.processImage = processImage
+module.exports.log = log

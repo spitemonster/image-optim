@@ -1,3 +1,4 @@
+require('dotenv').load()
 const express = require('express')
 const fs = require('fs')
 const fileUpload = require('express-fileupload')
@@ -20,6 +21,7 @@ const kue = require('kue')
 const queue = kue.createQueue()
 const cluster = require('cluster')
 const clusterWorkerSize = require('os').cpus().length
+const PORT = process.env.PORT ? process.env.PORT : 8888
 
 cluster.on('exit', function (worker) {
   cluster.fork()
@@ -36,7 +38,11 @@ app.use('/min', express.static('./min'))
 app.use(fileUpload())
 
 app.get('/', (req, res) => {
-  res.renderVue('home.vue')
+  res.status(200).renderVue('home.vue')
+})
+
+app.get('/download', (req, res) => {
+  res.status(401).redirect('/')
 })
 
 app.get('/download/:id', async (req, res) => {
@@ -48,18 +54,32 @@ app.get('/download/:id', async (req, res) => {
   if (!fs.existsSync(`./min/${id}`)) {
     let errorData = {
       statusCode: 404,
-      message: 'It looks like the file you uploaded has expired. Please upload your image and try again.'
+      message: 'The file you requested has expired. Please re-upload your images and try again.'
     }
 
-    return res.renderVue('404.vue', errorData)
+    return res.status(404).renderVue('404.vue', errorData)
   }
 
-  res.renderVue('download.vue', data)
+  res.status(200).renderVue('download.vue', data)
 })
 
 app.get('/download/:id/zip', (req, res) => {
   let id = req.params.filename
-  res.download(`./min/${id}.zip`)
+
+  if (!fs.existsSync(`./min/${id}`)) {
+    let errorData = {
+      statusCode: 404,
+      message: 'The file you requested has expired. Please re-upload your images and try again.'
+    }
+
+    return res.status(404).renderVue('404.vue', errorData)
+  }
+
+  res.status(200).download(`./min/${id}.zip`)
+})
+
+app.get('/test', (req, res) => {
+  res.status(401).redirect('/')
 })
 
 app.get('/test/:id', (req, res) => {
@@ -81,8 +101,8 @@ app.get('/test/:id', (req, res) => {
   }
 })
 
-app.get('/download/async.js', (req, res) => {
-  res.download(`./public/assets/scripts/async.js`)
+app.get('/upload', (req, res) => {
+  res.status(401).redirect('/')
 })
 
 app.post('/upload', (req, res) => {
@@ -96,7 +116,16 @@ app.post('/upload', (req, res) => {
   fs.mkdirSync(`./uploads/temp/${id}`)
   fs.mkdirSync(`./min/${id}`)
   fs.writeFileSync(`./uploads/temp/${id}/${fileName}-original${ext}`, imageData, (err) => {
-    if (err) return methods.handleError(err)
+    if (err) {
+      methods.handleError(err)
+    }
+
+    let errorData = {
+      statusCode: 500,
+      message: 'There was an error uploading your file, please try again.'
+    }
+
+    res.status(500).renderVue('404.vue', errorData)
   })
 
   let job = queue.create('process', {
@@ -119,15 +148,18 @@ app.post('/upload', (req, res) => {
     if (err) methods.handleError(err)
   })
 
-  res.redirect(`/download/${id}`)
+  res.status(200).redirect(`/download/${id}`)
 })
 
 app.get('/404', (req, res) => {
-  res.renderVue('404.vue')
+  res.status(404).renderVue('404.vue')
 })
 
 if (cluster.isMaster) {
-  app.listen('8888')
+  app.listen(PORT, () => {
+    console.log(`Listening on port ${PORT}`)
+  })
+
   cron.schedule('0 */12 * * *', () => {
     methods.deleteOld(`./min`)
   })

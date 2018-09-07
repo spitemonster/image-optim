@@ -3,3 +3,4 @@
 /uploads/temp/*
 /node_modules
 *.rdb
+.env
