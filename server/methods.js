@@ -7,11 +7,12 @@ const imageminJpegRecompress = require('imagemin-jpeg-recompress')
 const path = require('path')
 const Jimp = require('jimp')
 const fs = require('fs')
-const zipFolder = require('zip-folder')
+// const zipFolder = require('zip-folder')
 const triangulate = require('triangulate-image')
 const rimraf = require('rimraf')
 const sizeOf = require('image-size')
 const junk = require('junk')
+const AdmZip = require('adm-zip')
 
 // BEGIN UTILITY FUNCTIONS
 // none of these functions are exported
@@ -279,9 +280,14 @@ function cleanDirectory (directory) {
 function zipDirectory (directory) {
   log(`Zipping directory: ${directory}`)
   return new Promise((resolve, reject) => {
-    zipFolder(directory, `${directory}.zip`, (err) => {
-      if (err) { return handleError(err) } else { resolve('done') }
-    })
+    // zipFolder(directory, `${directory}.zip`, (err) => {
+    //   if (err) { return handleError(err) } else { resolve('done') }
+    // })
+
+    let zip = new AdmZip()
+    zip.addLocalFolder(directory)
+    zip.writeZip(`${directory}.zip`)
+    resolve('done')
   })
 }
 

@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "adm-zip": "^0.4.11",
     "body-parser": "^1.18.3",
     "canvas": "^1.6.11",
     "delaunay": "^0.4.0",
@@ -46,8 +47,7 @@
     "vue-cli": "^2.9.6",
     "vue-server-renderer": "^2.5.17",
     "vue-template-compiler": "^2.5.17",
-    "vuex": "^3.0.1",
-    "zip-folder": "^1.0.0"
+    "vuex": "^3.0.1"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
