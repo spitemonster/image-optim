@@ -7,7 +7,6 @@ const imageminJpegRecompress = require('imagemin-jpeg-recompress')
 const path = require('path')
 const Jimp = require('jimp')
 const fs = require('fs')
-// const zipFolder = require('zip-folder')
 const triangulate = require('triangulate-image')
 const rimraf = require('rimraf')
 const sizeOf = require('image-size')
@@ -28,7 +27,7 @@ function tessellate (buffer) {
     vertexCount: Math.ceil(Math.random() * 80) + 50
   }
 
-  // return this function to make it a bit easier to deal with later
+  // return result of function to make it a bit easier to deal with later
   return triangulate(triangulationParams)
                   .fromBufferSync(buffer)
                   .toJPGStream()
@@ -45,9 +44,10 @@ function resize (img, size, output) {
 function dropQuality (img) {
   return img.clone()
     .resize(960, Jimp.AUTO)
-    .quality(50)
+    .quality(100)
 }
 
+// img expects the buffer from jimp.read, option is the async option, output is the output directory
 function makeAsync (img, option, output) {
   if (option === 'none') {
     return dropQuality(img)
@@ -94,6 +94,7 @@ function calculateFileSize (sizeInBytes) {
 }
 
 // BEGIN EXPORT METHODS
+// given an extension and filesize, check to see it is an accepted extension and under 20mb
 function validateFile (ext, size) {
   let data = {
     valid: false,
@@ -124,6 +125,7 @@ function validateFile (ext, size) {
   return data
 }
 
+// promise that runs the async function; easiest, simplest way to do this
 function generateAsync (directory, filename, option, ext) {
   log('Generating async image')
   let fn = `${filename}-original${ext}`
@@ -141,8 +143,7 @@ function generateAsync (directory, filename, option, ext) {
     }).catch((err) => {
       let errorData = {
         statusCode: 500,
-        message: 'There was an error creating an asychronous version of your image. Please try again.',
-        type: 'Failure'
+        message: 'There was an error creating an asychronous version of your image. Please try again.'
       }
       handleError(err)
       reject(errorData)
@@ -153,7 +154,7 @@ function generateAsync (directory, filename, option, ext) {
 // resize images that are uploaded
 function resizeImages (id, filename, sizes, ext) {
   log('Resizing images')
-
+  console.log(sizes)
   let sizeOptions = {
     'xsmall': 320,
     'small': 480,
@@ -182,11 +183,9 @@ function resizeImages (id, filename, sizes, ext) {
         handleError(err)
         let errorData = {
           message: `We're having trouble reading the file you uploaded. Please confirm the file is not corrupted and try again.`,
-          statusCode: 422,
-          type: 'Failure'
+          statusCode: 422
         }
         cleanDirectory(directory)
-        cleanDirectory(`./min/${id}`)
         reject(errorData)
       })
   })
@@ -209,8 +208,7 @@ function optimizeImages (id) {
       handleError(err)
       let errorData = {
         message: 'There was an issue optimizing your images. Please re-upload your file and try again.',
-        statusCode: 500,
-        type: 'Failure'
+        statusCode: 500
       }
       cleanDirectory(`./uploads/temp/${id}`)
       cleanDirectory(`./min/${id}`)
@@ -413,6 +411,7 @@ function deleteOld (dir) {
   writeCronLog(message)
 }
 
+// summation of all of the image manipulation functions
 function processImage (data, done) {
   let options = {}
   let sizeOptions = []
@@ -421,7 +420,7 @@ function processImage (data, done) {
   return new Promise((resolve, reject) => {
     if (!data.sizes) {
       sizeOptions = [null]
-    } else if (typeof sizes === 'string') {
+    } else if (typeof data.sizes === 'string') {
       sizeOptions.push(data.sizes)
       options[sizeOptions[0]] = true
     } else {
@@ -449,7 +448,7 @@ function processImage (data, done) {
 
       if (data.async === 'on' && data.ext !== '.svg') {
         options['async'] = true
-        resizeImages(data.uuid, data.fileName, data.sizes, data.ext)
+        resizeImages(data.uuid, data.fileName, sizeOptions, data.ext)
           .then(function () { return generateAsync(tempPath, data.fileName, data.shape, data.ext) })
           .then(function () { return optimizeImages(data.uuid) })
           .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
@@ -483,6 +482,7 @@ function processImage (data, done) {
   })
 }
 
+// writes the cronjob log.
 function writeCronLog (message) {
   if (!fs.existsSync(`./server/logs/cron.log`)) {
     fs.writeFile(`./server/logs/cron.log`, message, (err) => {
@@ -507,6 +507,7 @@ function writeCronLog (message) {
   }
 }
 
+// console log based on process.env
 function log (message) {
   let dev = process.env.NODE_ENV === 'development'
   let verbose = process.env.VERBOSE
