@@ -45,7 +45,7 @@ app.get('/download', (req, res) => {
   res.status(401).redirect('/')
 })
 
-app.get('/download/:id', async (req, res) => {
+app.get('/download/:id', async(req, res) => {
   let id = req.params.id
   let data = {
     id: id
@@ -85,7 +85,7 @@ app.get('/test', (req, res) => {
 app.get('/test/:id', (req, res) => {
   let id = req.params.id
 
-  if (fs.existsSync(`./min/${id}.zip`)) {
+  if (fs.existsSync(`./min/${id}.zip` && fs.existsSync(`./min/${id}`))) {
     let created = fs.statSync(`./min/${id}.zip`).birthtimeMs
 
     methods.collectFiles(id)
@@ -107,8 +107,8 @@ app.get('/upload', (req, res) => {
 
 app.post('/upload', (req, res) => {
   let fileName = req.body.outPutName
-                 ? validator.blacklist(req.body.outPutName, './')
-                 : req.files.inputImage.name.split('.')[0]
+    ? validator.blacklist(req.body.outPutName, './')
+    : req.files.inputImage.name.split('.')[0]
   let ext = path.extname(req.files.inputImage.name)
   let id = randomstring.generate(12)
   let imageData = req.files.inputImage.data
@@ -160,18 +160,34 @@ if (cluster.isMaster) {
     console.log(`Listening on port ${PORT}`)
   })
 
-  cron.schedule('0 */12 * * *', () => {
-    methods.deleteOld(`./min`)
+  cron.schedule('* */12 * * *', () => {
+    let dir = queue.create('delete', {
+      dir: `./min`
+    })
+
+    dir.on('failed', () => {
+      let errorData = {
+        statusCode: 500,
+        message: 'There was an error processing your file. Please try again.'
+      }
+      res.renderVue('404.vue', errorData)
+    }).save((err) => {
+      if (err) methods.handleError(err)
+    })
   })
 
-  for (var i = 0; i < clusterWorkerSize; i += 1) {
+  for (let i = 0; i < clusterWorkerSize; i += 1) {
     cluster.fork()
   }
 } else {
   queue.process('process', 2, function (job, done) {
     methods.processImage(job.data, done)
-          .catch((err) => {
-            methods.handleError(err)
-          })
+      .catch((err) => {
+        methods.handleError(err)
+      })
+  })
+
+  queue.process('delete', function (job, done) {
+    methods.deleteOld(job.data.dir)
   })
 }

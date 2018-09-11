@@ -29,15 +29,15 @@ function tessellate (buffer) {
 
   // return result of function to make it a bit easier to deal with later
   return triangulate(triangulationParams)
-                  .fromBufferSync(buffer)
-                  .toJPGStream()
+    .fromBufferSync(buffer)
+    .toJPGStream()
 }
 
 // resize function. not much to see hwere
 function resize (img, size, output) {
   img.clone()
-     .resize(size, Jimp.AUTO)
-     .write(output)
+    .resize(size, Jimp.AUTO)
+    .write(output)
 }
 
 // drops quality of image and returns the promise
@@ -51,29 +51,29 @@ function dropQuality (img) {
 function makeAsync (img, option, output) {
   if (option === 'none') {
     return dropQuality(img)
-              .writeAsync(output)
+      .writeAsync(output)
   } else if (option === 'blur') {
     return dropQuality(img)
-              .blur(15)
-              .writeAsync(output)
+      .blur(15)
+      .writeAsync(output)
   } else if (option === 'pixel') {
     return dropQuality(img)
-              .pixelate(80)
-              .writeAsync(output)
+      .pixelate(80)
+      .writeAsync(output)
   } else if (option === 'tri') {
     return dropQuality(img)
-              .getBuffer(img.getMIME(), (err, buffer) => {
-                return new Promise((resolve, reject) => {
-                  if (err) return handleError(err)
-                  let fileStream = fs.createWriteStream(output)
-                  let jpgStream = tessellate(buffer)
-                  jpgStream.on('data', function (chunk) { fileStream.write(chunk) })
-                  jpgStream.on('end', function () {
-                    fileStream.end()
-                  })
-                  resolve('done')
-                })
-              })
+      .getBuffer(img.getMIME(), (err, buffer) => {
+        return new Promise((resolve, reject) => {
+          if (err) return handleError(err)
+          let fileStream = fs.createWriteStream(output)
+          let jpgStream = tessellate(buffer)
+          jpgStream.on('data', function (chunk) { fileStream.write(chunk) })
+          jpgStream.on('end', function () {
+            fileStream.end()
+          })
+          resolve('done')
+        })
+      })
   }
 }
 
@@ -197,9 +197,9 @@ function optimizeImages (id) {
   return new Promise((resolve, reject) => {
     imagemin([`./uploads/temp/${id}/` + '*.{jpg,png,jpeg,svg,gif}'], `./min/${id}/`, {
       plugins: [
-        imageminJpegRecompress({accurate: true, min: 55, max: 78}),
-        imageminPngquant({quality: '65'}),
-        imageminGifsicle({interlaced: true, optimizationLevel: 3}),
+        imageminJpegRecompress({ accurate: true, min: 55, max: 78 }),
+        imageminPngquant({ quality: '65' }),
+        imageminGifsicle({ interlaced: true, optimizationLevel: 3 }),
         imageminSvgo()
       ]
     }).then(function () {
@@ -224,8 +224,7 @@ function collectFiles (dir) {
     let data = {
       filename: '',
       zipUrl: `/download/${dir}/zip`,
-      files: {
-      },
+      files: {},
       code: '',
       original: ''
     }
@@ -237,7 +236,7 @@ function collectFiles (dir) {
     }
 
     if (fs.existsSync(`./min/${dir}/codeExample.html`)) {
-      data.code = fs.readFileSync(`./min/${dir}/codeExample.html`, {encoding: 'utf8'})
+      data.code = fs.readFileSync(`./min/${dir}/codeExample.html`, { encoding: 'utf8' })
     }
 
     for (let i = 0; i < files.length; i++) {
@@ -375,6 +374,7 @@ function handleError (err) {
 
 // deletes any files and directories older than 3 days that are inside the min directory
 function deleteOld (dir) {
+  console.log(dir)
   log(`Deleting older files`)
   let files = fs.readdirSync(dir).filter(junk.not)
   let date = Date(Date.now()).toString()
@@ -454,7 +454,10 @@ function processImage (data, done) {
           .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
           .then(function () { return cleanDirectory(tempPath) })
           .then(function () { return zipDirectory(`./min/${data.uuid}`) })
-          .then(function () { done(); resolve() })
+          .then(function () {
+            done()
+            resolve()
+          })
           .catch((err) => {
             reject(err)
           })
@@ -464,7 +467,10 @@ function processImage (data, done) {
           .then(function () { return cleanDirectory(tempPath) })
           .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
           .then(function () { return zipDirectory(`./min/${data.uuid}`) })
-          .then(function () { done(); resolve() })
+          .then(function () {
+            done()
+            resolve()
+          })
           .catch((err) => {
             reject(err)
           })
@@ -473,7 +479,10 @@ function processImage (data, done) {
           .then(function () { return printCode(data.fileName, data.ext, options, data.uuid) })
           .then(function () { return cleanDirectory(tempPath) })
           .then(function () { return zipDirectory(`./min/${data.uuid}`) })
-          .then(function () { done(); resolve() })
+          .then(function () {
+            done()
+            resolve()
+          })
           .catch((err) => {
             reject(err)
           })
